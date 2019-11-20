@@ -1,0 +1,12 @@
+name: videolabel
+channels:
+  - defaults
+dependencies:
+  - opencv
+  - ipykernel
+  - jupyterlab
+  - tqdm
+  - ipywidgets
+  - nodejs
+prefix: /home/sneufeld/anaconda3/envs/videolabel
+
