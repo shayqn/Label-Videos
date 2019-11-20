@@ -8,5 +8,4 @@ dependencies:
   - tqdm
   - ipywidgets
   - nodejs
-prefix: /home/sneufeld/anaconda3/envs/videolabel
 
