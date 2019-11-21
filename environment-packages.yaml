@@ -1,4 +1,4 @@
-name: videolabel
+name: videolabel-test
 channels:
   - defaults
 dependencies:
