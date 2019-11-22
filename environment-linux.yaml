@@ -1,4 +1,4 @@
-name: videolabel-test
+name: video-labeler-linux
 channels:
   - conda-forge
   - defaults
