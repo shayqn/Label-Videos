@@ -7,7 +7,7 @@ Simple Python approach to manually labeling video frames to generate training da
 ### Linux
 Use conda to create an environment from `environment-linux.yaml`:
 
-`conda create env -f environment-linux.yaml`
+`conda env create -f environment-linux.yaml`
 
 After creating the environment, you can activate it with:
 
