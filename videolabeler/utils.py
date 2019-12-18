@@ -2,6 +2,7 @@ import cv2
 import numpy as np
 from tqdm.notebook import tqdm
 from tqdm import tnrange
+from skvideo.io import FFmpegWriter
 import numpy as np
 
 #####################################################
@@ -222,25 +223,37 @@ def annotate_frames(frames,labels):
     num_frames = len(frames)
     num_labels = labels.shape[0]
     
+    #position the box at the lower left corner
+    box_width = 250
+    box_height = 75
+    frame_width = frames[0].shape[0]
+    frame_height = frames[0].shape[1]
+
+    start_xy = (0,frame_height)
+    end_xy = (box_width,frame_height-box_height)
+
+
     assert num_frames == num_labels,'number of frames must equal number of labels'
     
 
     for i in range(num_frames):
         
-        frame = frames_out[i]
+        frame = frames_out[i].copy()
         label = labels[i]
         
-        if label is not '0.0':
-            '''
-            for 1024x1280
-            #annotate the frame with the label text
-            cv2.rectangle(frame,(0,1024),(250,950),(0,0,0),-1) #need a solid background so that...
-            #...the labels can be overwritten
-            cv2.putText(frame,label,(0,1000),cv2.FONT_HERSHEY_COMPLEX,1,(255,255,255),2,cv2.LINE_AA)
-            '''
-            #annotate the frame with the label text
-            cv2.rectangle(frame,(0,900),(250,800),(0,0,0),-1) #need a solid background so that...
-            #...the labels can be overwritten
+        
+        '''
+        for 1024x1280
+        #annotate the frame with the label text
+        cv2.rectangle(frame,(0,1024),(250,950),(0,0,0),-1) #need a solid background so that...
+        #...the labels can be overwritten
+        cv2.putText(frame,label,(0,1000),cv2.FONT_HERSHEY_COMPLEX,1,(255,255,255),2,cv2.LINE_AA)
+        '''
+        #annotate the frame with the label text
+        cv2.rectangle(frame,(0,900),(250,800),(0,0,0),-1) #solid black background
+        #label text
+
+        if label != '0.0':
             cv2.putText(frame,label,(0,875),cv2.FONT_HERSHEY_COMPLEX,1,(255,255,255),2,cv2.LINE_AA)
             
             
@@ -248,3 +261,19 @@ def annotate_frames(frames,labels):
             frames_out[i] = frame
     
     return frames_out
+
+
+#####################################################
+########## Write annotated video  ###################
+#####################################################
+def writeAnnotatedVideo(write_file,annotated_frames,fps):
+
+    video = FFmpegWriter(write_file, 
+            inputdict={'-r': str(fps)},outputdict={'-r': str(fps)})
+
+    frames = np.array(annotated_frames)
+
+    for frame_num in tqdm(np.arange(frames.shape[0])):
+        video.writeFrame(frames[frame_num,:,:])
+
+    video.close()
