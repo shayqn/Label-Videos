@@ -1,6 +1,5 @@
 # video-labeler
-Simple Python approach to manually labeling video frames to generate training data for supervised machine learning models. 
-
+Simple Python approach that allows users to manually label video frames. Motivation: creating training data for supervised machine learning models. 
 
 ## Install
 
@@ -21,5 +20,5 @@ After activating the environment, you will need to enable the ipywidget jupyter 
 
 
 ### Other operating systems
-Haven't been tested yet. A list of required packages is provided in `environment-packages.yaml` - use this file to manually install the packages using conda/pip/whatever you like to try and get it working. 
+Haven't been tested yet. A list of required packages is provided in `environment-packages.yaml` - you can use this file to manually inspect & install the packages using conda/pip/etc. to try and get it working. 
 
