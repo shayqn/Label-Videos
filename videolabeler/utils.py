@@ -72,7 +72,8 @@ def setFrameCounter(frame_counter,num_frames):
     
     return frame_counter
 
-def PlayAndLabelFrames(frames,label_dict = {'w':'walking','t':'turning','s':'standing'},return_labeled_frames=False):
+def PlayAndLabelFrames(frames,label_dict = {'i':'INTERP','w':'walking','t':'turning','s':'standing'},
+                        return_labeled_frames=False):
     
     frames_out = frames.copy()
     '''
@@ -176,27 +177,38 @@ def PlayAndLabelFrames(frames,label_dict = {'w':'walking','t':'turning','s':'sta
 
 def interpolate_labels(labels):
     '''
-    Interpolate frame labels for unlabeled frames where the previous labeled frame and the next labeled frame have the same label. 
-    IE. a sequence of ['standing','nolabel','nolabel','standing','walking','nolabel'] is transformed to:
-    ['standing','standing','standing','standing','walking','nolabel']
-    
-    Note that the last unlabeled frame is not interpolated, since there was no labeled frame following it. The same thing happens
-    for unlabeled frames that occur before the first labeled frame. 
+    Interpolate frame labels for unlabeled frames where the previous labeled frame and the next 
+    labeled frame have the same label. Interpolation is called out explictly by the user with 
+    the key stroke 'i' (which will label the frame as INTERP) in the following manner:
+    ['walking','INTERP','0','0','walking','0','walking']
+
+    This function looks for frames labeled INTERP, and then applies the label from the frame
+    immediately before to all the frames up until the next label. The next label must be 
+    identical to the previous one, or else the interpolation fails. 
+
+    The output of the above labels after interpolation would be:
+    ['walking','walking','walking','walking','0','walking']
     '''
-    nolab_frames = np.where(labels == '0.0')[0]
-    lab_frames = np.where(labels != '0.0')[0]
+
+    interp_frames = np.where(labels == 'INTERP')[0]
+    labeled_frames_all = np.where(labels != '0.0')[0]
+    labeled_frames = list(set(labeled_frames_all).difference(set(interp_frames)))
+    labeled_frames.sort()
+
     labels_interp = labels.copy()
 
-    for nolab_frame in nolab_frames:
+    for interp_frame in interp_frames:
 
-        if ((nolab_frame > 0) & (np.where(lab_frames > nolab_frame)[0].size>0)):
+        label = labels[interp_frame-1]
 
-            label_prev = labels_interp[nolab_frame-1]
-            label_next = labels_interp[lab_frames[np.where(lab_frames > nolab_frame)[0][0]]]
+        #check to see if next label is the same. It should be
+        next_labeled_frame = labeled_frames[np.where(labeled_frames > interp_frame)[0][0]]
+        next_label = labels[next_labeled_frame]
 
-            if label_prev == label_next:
-                labels_interp[nolab_frame] = label_prev
-    
+        assert label == next_label,'Interpolation failed because labels do not match'
+
+        labels_interp[interp_frame:next_labeled_frame] = label
+        
     return labels_interp
 
 
