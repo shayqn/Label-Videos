@@ -4,14 +4,16 @@ Simple Python approach to manually labeling video frames to generate training da
 
 ## Install
 
-### Linux
-Use conda to create an environment from `environment-linux.yaml`:
+### Linux and Mac
+Use conda to create an environment from `environment-linux.yaml` (for Linux users) or `environment-macOS.yaml` (for Mac users):
 
-`conda env create -f environment-linux.yaml`
+`conda env create -f environment-linux.yaml` or  
+`conda env create -f environment-macOS.yaml`
 
 After creating the environment, you can activate it with:
 
-`conda activate video-labeler-linux`
+`conda activate video-labeler-linux` or   
+`conda activate video-labeler-macOS`
 
 After activating the environment, you will need to enable the ipywidget jupyter extension for the `tqdm` package to work properly in jupyter labs. You can find instructions [here](https://ipywidgets.readthedocs.io/en/stable/user_install.html#installing-the-jupyterlab-extension). It should just require the following command: 
 
