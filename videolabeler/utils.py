@@ -4,6 +4,8 @@ from tqdm.notebook import tqdm
 from tqdm import tnrange
 from skvideo.io import FFmpegWriter
 import numpy as np
+import pandas as pd
+import os
 
 #####################################################
 ####### Load Video Frames ##########################
@@ -277,3 +279,87 @@ def writeAnnotatedVideo(write_file,annotated_frames,fps):
         video.writeFrame(frames[frame_num,:,:])
 
     video.close()
+
+
+#####################################################
+########## Batch Label Video #### ###################
+#####################################################
+
+def batchFrameLabel(video_file,labels_file,batch_size,
+                    label_dict = {'i':'INTERP','w':'walking','t':'turning','s':'standing'}):
+'''
+This will check to see if a labels_file already exists. If so, you can choose to continue from 
+where you left off, or choose to overwrite. 
+'''
+    
+    if os.path.exists(labels_file):
+        continue_label_input = input('Continue labeling? (N will overwrite existing {} file) [y/N]: '.format(labels_file))
+        
+        if continue_label_input == 'y':
+            master_labels = pd.read_csv(labels_file,index_col=0)
+            
+            start_frame = master_labels.frame.values[-1] + 1
+        else:
+            start_frame = 0
+            master_labels = pd.DataFrame()
+    
+    #load in video
+    video = cv2.VideoCapture(video_file)
+    n_frames = video.get(cv2.CAP_PROP_FRAME_COUNT)
+    batch_starts = np.arange(start_frame,n_frames,batch_size)
+    
+    label_next = True
+    for batch_start in batch_starts:
+    
+        if label_next is True:
+            video.set(cv2.CAP_PROP_POS_FRAMES,batch_start)
+
+            # Read in video batch
+            if batch_start == batch_starts[-1]:
+                n_frames_to_read = n_frames - batch_start
+            else:
+                n_frames_to_read = batch_size
+            frames = []
+
+            for i in tqdm(range(n_frames_to_read)):
+                ret, frame = video.read()
+                gray=cv2.cvtColor(frame,cv2.COLOR_BGR2GRAY)
+                frames.append(gray)
+                key = cv2.waitKey(1)
+
+
+            # Label Frames
+            label_list = PlayAndLabelFrames(frames,label_dict=label_dict,return_labeled_frames=False)
+
+            label_list = interpolate_labels(label_list) #interpolate
+
+            label_df = pd.DataFrame(data = {'label':label_list,'frame':np.arange(batch_start,batch_start + n_frames_to_read,1)})
+
+            save_labels_input = input('Save labels? [y/n]: ')
+
+            if save_labels_input == 'y':
+                save_labels = True
+            elif save_labels_input == 'n':
+                save_labels = False
+            else:
+                print('Input not understood, defaulting to yes')
+                save_labels = True
+
+            #Save labels
+            if save_labels is True:
+                master_labels = master_labels.append(label_df)
+                master_labels.to_csv(labels_file)
+
+            #Determine whether to label next batch of frames
+            if batch_start == batch_starts[-1]:
+                label_next = False
+            else:
+                label_next_input = input('Label next batch? [y/n]: ')
+
+                if label_next_input == 'y':
+                    label_next = True
+                elif label_next_input == 'n':
+                    label_next = False
+                else:
+                    print('Input not understood, defaulting to "yes"')
+                    label_next = False
