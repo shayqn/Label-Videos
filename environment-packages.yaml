@@ -1,11 +1,14 @@
-name: videolabel-test
+name: video-labeler-macOS
 channels:
   - defaults
 dependencies:
-  - opencv
+  - python=3.6.7
   - ipykernel
   - jupyterlab
   - tqdm
   - ipywidgets
   - nodejs
+  - opencv
+  - scikit-video
+  - pandas
 

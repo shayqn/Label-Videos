@@ -69,7 +69,8 @@ dependencies:
   - numpy=1.17.4=py36h890c691_0
   - numpy-base=1.17.4=py36h6575580_0
   - opencv=3.4.2=py36h6fd60c2_1
-  - openssl=1.1.1=h1de35cc_0
+  - openssl=1.1.1d=h1de35cc_3
+  - pandas=0.25.3=py36h0a44026_0
   - pandoc=2.2.3.2=0
   - pandocfilters=1.4.2=py36_1
   - parso=0.5.2=py_0
@@ -86,8 +87,11 @@ dependencies:
   - pyrsistent=0.15.6=py36h1de35cc_0
   - python=3.6.7=haf84260_0
   - python-dateutil=2.8.1=py_0
+  - pytz=2019.3=py_0
   - pyzmq=18.1.0=py36h0a44026_0
   - readline=7.0=h1de35cc_5
+  - scikit-video=1.1.11=pyh24bf2e0_0
+  - scipy=1.3.2=py36h1410ff5_0
   - send2trash=1.5.0=py36_0
   - setuptools=42.0.2=py36_0
   - six=1.13.0=py36_0
@@ -107,3 +111,4 @@ dependencies:
   - zipp=0.6.0=py_0
   - zlib=1.2.11=h1de35cc_3
   - zstd=1.3.7=h5bba6e5_0
+
