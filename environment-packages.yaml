@@ -1,4 +1,4 @@
-name: video-labeler-macOS
+name: video-labeler
 channels:
   - defaults
 dependencies:
