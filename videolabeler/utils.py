@@ -206,7 +206,7 @@ def interpolate_labels(labels):
 
     for interp_frame in interp_frames:
 
-        label = labels[interp_frame-1]
+        label = str(labels[interp_frame-1])
 
         #check to see if next label is the same. It should be
         next_labeled_frame = labeled_frames[np.where(labeled_frames > interp_frame)[0][0]]
