@@ -323,7 +323,7 @@ def batchFrameLabel(video_file,labels_file,batch_size,
     
     for batch_start in batch_starts:
     
-        if label_next is True:
+        while True:
             video.set(cv2.CAP_PROP_POS_FRAMES,batch_start)
 
             # Read in video batch
@@ -366,11 +366,30 @@ def batchFrameLabel(video_file,labels_file,batch_size,
                 n_labeled = master_labels.shape[0]
                 per_labeled = n_labeled*100 / n_frames
                 print('{} out of {} frames labeled ({:.02f} %)'.format(n_labeled,n_frames,per_labeled))
-
-            #Determine whether to label next batch of frames
+            
+            # quit if there's nothing more, continue otherwise
             if batch_start == batch_starts[-1]:
                 label_next = False
-            else:
+                break
+            
+            
+            #If user does not save, check if they want to relabel, quit or move on
+            if save_labels is False:
+                cont_input = input('[Q]uit, [r]elabel the same batch or [c]ontinue to next batch? [q/r/c]: ')
+                
+                if cont_input == 'q':
+                    label_next = False
+                    break
+                elif cont_input == 'r':
+                    pass
+                elif cont_input == 'c':
+                    label_next = True
+                    break
+                else:
+                    print('Input not understood. Opening same batch for relabeling.')
+                    
+            else: #otherwise, just ask if they want to label the next batch
+                
                 label_next_input = input('Label next batch? [y/n]: ')
 
                 if label_next_input == 'y':
@@ -379,4 +398,9 @@ def batchFrameLabel(video_file,labels_file,batch_size,
                     label_next = False
                 else:
                     print('Input not understood, defaulting to "yes"')
-                    label_next = False
+                    label_next = True
+                break
+        
+        #Once out of repeat loop, check if user said to proceed
+        if label_next is False:
+            break
