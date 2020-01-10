@@ -81,7 +81,7 @@ def PlayAndLabelFrames(frames,label_dict = {'i':'INTERP','w':'walking','t':'turn
     frames_out = frames.copy()
     frame_height = frames_out[0].shape[0]
     frame_width = frames_out[0].shape[1]
-
+    
     '''
     Set up variables
     '''
@@ -349,6 +349,25 @@ def batchFrameLabel(video_file,labels_file,batch_size,
             frames.append(gray)
             key = cv2.waitKey(1)
 
+        #warn user if they overwrote a navigation key
+        nav_keys = [',', '.', 'd', 'q']
+
+        if bool(label_dict.keys() & nav_keys) is True:
+            print("Warning: One of the navigation keys is overwritten. Do not use d, q, <, > as a labeling key.")
+
+        #print all keys    
+        print(""" 
+        Navigation
+        < : previous frame
+        > : next frame
+        d : delete label
+        q : quit
+            """)
+
+        print('Labels')
+        for key in label_dict:
+            print(key + " : " + label_dict[key])
+            
 
         # Label Frames
         label_list = PlayAndLabelFrames(frames,label_dict=label_dict,return_labeled_frames=False)
