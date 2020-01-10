@@ -328,17 +328,17 @@ def batchFrameLabel(video_file,labels_file,batch_size,
     #print(batch_starts.shape)
     
     label_in_progress = True
-    ind_batch = 0
+    current_ind = 0
     
     while label_in_progress is True:
         
-        batch_start = batch_starts[ind_batch]
+        current_batch = batch_starts[current_ind]
         
-        video.set(cv2.CAP_PROP_POS_FRAMES,batch_start)
+        video.set(cv2.CAP_PROP_POS_FRAMES,current_batch)
 
         # Read in video batch
-        if batch_start == batch_starts[-1]:
-            n_frames_to_read = n_frames - batch_start
+        if current_batch == batch_starts[-1]:
+            n_frames_to_read = n_frames - current_batch
         else:
             n_frames_to_read = batch_size
         frames = []
@@ -355,7 +355,7 @@ def batchFrameLabel(video_file,labels_file,batch_size,
 
         label_list = interpolate_labels(label_list) #interpolate
 
-        label_df = pd.DataFrame(data = {'label':label_list,'frame':np.arange(batch_start,batch_start + n_frames_to_read,1)})
+        label_df = pd.DataFrame(data = {'label':label_list,'frame':np.arange(current_batch,current_batch + n_frames_to_read,1)})
 
         save_labels_input = input('Save labels? [y/n]: ')
 
@@ -378,7 +378,7 @@ def batchFrameLabel(video_file,labels_file,batch_size,
             print('{} out of {} frames labeled ({:.02f} %)'.format(n_labeled,n_frames,per_labeled))
 
         # quit if there's nothing more, continue otherwise
-        if batch_start == batch_starts[-1]:
+        if current_batch == batch_starts[-1]:
             break
 
 
@@ -391,7 +391,7 @@ def batchFrameLabel(video_file,labels_file,batch_size,
             elif cont_input == 'r':
                 pass
             elif cont_input == 'c':
-                ind_batch += 1
+                current_ind += 1
             else:
                 print('Input not understood. Opening same batch for relabeling.')
 
@@ -400,9 +400,9 @@ def batchFrameLabel(video_file,labels_file,batch_size,
             label_next_input = input('Label next batch? [y/n]: ')
 
             if label_next_input == 'y':
-                ind_batch += 1
+                current_ind += 1
             elif label_next_input == 'n':
                 label_in_progress = False
             else:
                 print('Input not understood, defaulting to "yes"')
-                ind_batch += 1
+                current_ind += 1
