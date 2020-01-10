@@ -162,7 +162,7 @@ def PlayAndLabelFrames(frames,label_dict = {'i':'INTERP','w':'walking','t':'turn
             frame_counter = setFrameCounter(frame_counter,num_frames)
             cv2.setTrackbarPos("frame","Video", frame_counter)
 
-        elif key == ord('q'): #if `q` then quit
+        elif key == ord('x'): #if `x` then quit
             playVideo = False
         
         elif key == ord('d'):
@@ -327,6 +327,26 @@ def batchFrameLabel(video_file,labels_file,batch_size,
     batch_starts = np.arange(start_frame,n_frames,batch_size)
     #print(batch_starts.shape)
     
+    #warn user if they overwrote a navigation key
+    nav_keys = [',', '.', 'd', 'q']
+
+    if bool(label_dict.keys() & nav_keys) is True:
+        print("Warning: One of the navigation keys is overwritten. Do not use d, x, <, > as a labeling key.")
+
+    #print all keys    
+    print(""" 
+    Navigation
+    < : previous frame
+    > : next frame
+    d : delete label
+    x : quit
+        """)
+
+    print('Labels')
+    for key in label_dict:
+        print(key + " : " + label_dict[key])
+            
+    
     label_in_progress = True
     current_ind = 0
     
@@ -348,26 +368,6 @@ def batchFrameLabel(video_file,labels_file,batch_size,
             gray=cv2.cvtColor(frame,cv2.COLOR_BGR2GRAY)
             frames.append(gray)
             key = cv2.waitKey(1)
-
-        #warn user if they overwrote a navigation key
-        nav_keys = [',', '.', 'd', 'q']
-
-        if bool(label_dict.keys() & nav_keys) is True:
-            print("Warning: One of the navigation keys is overwritten. Do not use d, q, <, > as a labeling key.")
-
-        #print all keys    
-        print(""" 
-        Navigation
-        < : previous frame
-        > : next frame
-        d : delete label
-        q : quit
-            """)
-
-        print('Labels')
-        for key in label_dict:
-            print(key + " : " + label_dict[key])
-            
 
         # Label Frames
         label_list = PlayAndLabelFrames(frames,label_dict=label_dict,return_labeled_frames=False)
