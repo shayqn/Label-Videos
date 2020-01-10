@@ -164,6 +164,14 @@ def PlayAndLabelFrames(frames,label_dict = {'i':'INTERP','w':'walking','t':'turn
 
         elif key == ord('q'): #if `q` then quit
             playVideo = False
+        
+        elif key == ord('d'):
+            labels[frame_counter] = 0.0
+            
+            #update rectangle to show lael is gone
+            cv2.rectangle(frame,(0,frame_height),(250,frame_height-100),(0,0,0),-1)
+            cv2.putText(frame,'no_label',(0,875),cv2.FONT_HERSHEY_COMPLEX,1,(255,255,255),2,cv2.LINE_AA)
+            frames_out[frame_counter] = frame
 
 
     #close any opencv windows    
@@ -375,9 +383,9 @@ def batchFrameLabel(video_file,labels_file,batch_size,
             
             #If user does not save, check if they want to relabel, quit or move on
             if save_labels is False:
-                cont_input = input('[Q]uit, [r]elabel the same batch or [c]ontinue to next batch? [q/r/c]: ')
+                cont_input = input('Continue to label? "n" for no, "r" for relabel current batch, or "c" for continue to next batch [n/r/c]: ')
                 
-                if cont_input == 'q':
+                if cont_input == 'n':
                     label_next = False
                     break
                 elif cont_input == 'r':
