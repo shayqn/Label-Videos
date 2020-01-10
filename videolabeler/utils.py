@@ -164,6 +164,14 @@ def PlayAndLabelFrames(frames,label_dict = {'i':'INTERP','w':'walking','t':'turn
 
         elif key == ord('q'): #if `q` then quit
             playVideo = False
+        
+        elif key == ord('d'):
+            labels[frame_counter] = 0.0
+            
+            #update rectangle to show lael is gone
+            cv2.rectangle(frame,(0,frame_height),(250,frame_height-100),(0,0,0),-1)
+            cv2.putText(frame,'no_label',(0,875),cv2.FONT_HERSHEY_COMPLEX,1,(255,255,255),2,cv2.LINE_AA)
+            frames_out[frame_counter] = frame
 
 
     #close any opencv windows    
@@ -319,64 +327,82 @@ def batchFrameLabel(video_file,labels_file,batch_size,
     batch_starts = np.arange(start_frame,n_frames,batch_size)
     #print(batch_starts.shape)
     
-    label_next = True
+    label_in_progress = True
+    current_ind = 0
     
-    for batch_start in batch_starts:
-    
-        if label_next is True:
-            video.set(cv2.CAP_PROP_POS_FRAMES,batch_start)
+    while label_in_progress is True:
+        
+        current_batch = batch_starts[current_ind]
+        
+        video.set(cv2.CAP_PROP_POS_FRAMES,current_batch)
 
-            # Read in video batch
-            if batch_start == batch_starts[-1]:
-                n_frames_to_read = n_frames - batch_start
+        # Read in video batch
+        if current_batch == batch_starts[-1]:
+            n_frames_to_read = n_frames - current_batch
+        else:
+            n_frames_to_read = batch_size
+        frames = []
+
+        for i in tqdm(range(n_frames_to_read)):
+            ret, frame = video.read()
+            gray=cv2.cvtColor(frame,cv2.COLOR_BGR2GRAY)
+            frames.append(gray)
+            key = cv2.waitKey(1)
+
+
+        # Label Frames
+        label_list = PlayAndLabelFrames(frames,label_dict=label_dict,return_labeled_frames=False)
+
+        label_list = interpolate_labels(label_list) #interpolate
+
+        label_df = pd.DataFrame(data = {'label':label_list,'frame':np.arange(current_batch,current_batch + n_frames_to_read,1)})
+
+        save_labels_input = input('Save labels? [y/n]: ')
+
+        if save_labels_input == 'y':
+            save_labels = True
+        elif save_labels_input == 'n':
+            save_labels = False
+        else:
+            print('Input not understood, defaulting to yes')
+            save_labels = True
+
+        #Save labels
+        if save_labels is True:
+            master_labels = master_labels.append(label_df)
+            master_labels.to_csv(labels_file)
+
+            #print progress
+            n_labeled = master_labels.shape[0]
+            per_labeled = n_labeled*100 / n_frames
+            print('{} out of {} frames labeled ({:.02f} %)'.format(n_labeled,n_frames,per_labeled))
+
+        # quit if there's nothing more, continue otherwise
+        if current_batch == batch_starts[-1]:
+            break
+
+
+        #If user does not save, check if they want to relabel, quit or move on
+        if save_labels is False:
+            cont_input = input('Continue to label? "n" for no, "r" for relabel current batch, or "c" for continue to next batch [n/r/c]: ')
+
+            if cont_input == 'n':
+                label_in_progress = False
+            elif cont_input == 'r':
+                pass
+            elif cont_input == 'c':
+                current_ind += 1
             else:
-                n_frames_to_read = batch_size
-            frames = []
+                print('Input not understood. Opening same batch for relabeling.')
 
-            for i in tqdm(range(n_frames_to_read)):
-                ret, frame = video.read()
-                gray=cv2.cvtColor(frame,cv2.COLOR_BGR2GRAY)
-                frames.append(gray)
-                key = cv2.waitKey(1)
+        else: #otherwise, just ask if they want to label the next batch
 
+            label_next_input = input('Label next batch? [y/n]: ')
 
-            # Label Frames
-            label_list = PlayAndLabelFrames(frames,label_dict=label_dict,return_labeled_frames=False)
-
-            label_list = interpolate_labels(label_list) #interpolate
-
-            label_df = pd.DataFrame(data = {'label':label_list,'frame':np.arange(batch_start,batch_start + n_frames_to_read,1)})
-
-            save_labels_input = input('Save labels? [y/n]: ')
-
-            if save_labels_input == 'y':
-                save_labels = True
-            elif save_labels_input == 'n':
-                save_labels = False
+            if label_next_input == 'y':
+                current_ind += 1
+            elif label_next_input == 'n':
+                label_in_progress = False
             else:
-                print('Input not understood, defaulting to yes')
-                save_labels = True
-
-            #Save labels
-            if save_labels is True:
-                master_labels = master_labels.append(label_df)
-                master_labels.to_csv(labels_file)
-
-                #print progress
-                n_labeled = master_labels.shape[0]
-                per_labeled = n_labeled*100 / n_frames
-                print('{} out of {} frames labeled ({:.02f} %)'.format(n_labeled,n_frames,per_labeled))
-
-            #Determine whether to label next batch of frames
-            if batch_start == batch_starts[-1]:
-                label_next = False
-            else:
-                label_next_input = input('Label next batch? [y/n]: ')
-
-                if label_next_input == 'y':
-                    label_next = True
-                elif label_next_input == 'n':
-                    label_next = False
-                else:
-                    print('Input not understood, defaulting to "yes"')
-                    label_next = False
+                print('Input not understood, defaulting to "yes"')
+                current_ind += 1
