@@ -114,8 +114,7 @@ def PlayAndLabelFrames(frames,label_dict = {'i':'INTERP','w':'walking','t':'turn
     n_overlap_frames = len(overlap_labels)
     
     if n_overlap_frames is not 0:
-        labeled_frames = annotate_frames(frames[:n_overlap_frames], overlap_labels)
-        frames_out[:n_overlap_frames] = labeled_frames
+        frames_out[:n_overlap_frames] = annotate_frames(frames[:n_overlap_frames], overlap_labels)
     
     '''
     Play & Label Video
@@ -129,14 +128,7 @@ def PlayAndLabelFrames(frames,label_dict = {'i':'INTERP','w':'walking','t':'turn
 
         #wait for keypress
         key = cv2.waitKey(0)
-                
-        #if frame is an overlap frame that's been labeled, show it
-        #old_label = labels[frame_counter]
-        
-        #if type(old_label) is str:
-        #    cv2.rectangle(frame,(0,frame_height),(300,frame_height-100),(0,0,0),-1)
-        #    cv2.putText(frame,old_label,(0,875),cv2.FONT_HERSHEY_COMPLEX,1,(255,255,255),2,cv2.LINE_AA)
-        #    frames_out[frame_counter] = frame
+               
 
         '''
         Check to see if the user pressed any of the label keys
