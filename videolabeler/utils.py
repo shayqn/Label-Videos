@@ -139,7 +139,7 @@ def PlayAndLabelFrames(frames,label_dict = {'i':'INTERP','w':'walking','t':'turn
             
             #annotate the frame with the label text
             #cv2.rectangle(frame,(0,900),(250,800),(0,0,0),-1) #need a solid background so that...
-            cv2.rectangle(frame,(0,frame_height),(250,frame_height-100),(0,0,0),-1)
+            cv2.rectangle(frame,(0,frame_height),(300,frame_height-100),(0,0,0),-1)
             #...the labels can be overwritten
             cv2.putText(frame,label,(0,875),cv2.FONT_HERSHEY_COMPLEX,1,(255,255,255),2,cv2.LINE_AA)
             
@@ -165,11 +165,11 @@ def PlayAndLabelFrames(frames,label_dict = {'i':'INTERP','w':'walking','t':'turn
         elif key == ord('x'): #if `x` then quit
             playVideo = False
         
-        elif key == ord('d'):
+        elif key == ord('f'):
             labels[frame_counter] = 0.0
             
-            #update rectangle to show lael is gone
-            cv2.rectangle(frame,(0,frame_height),(250,frame_height-100),(0,0,0),-1)
+            #update rectangle to show label is gone
+            cv2.rectangle(frame,(0,frame_height),(300,frame_height-100),(0,0,0),-1)
             cv2.putText(frame,'no_label',(0,875),cv2.FONT_HERSHEY_COMPLEX,1,(255,255,255),2,cv2.LINE_AA)
             frames_out[frame_counter] = frame
 
@@ -298,7 +298,8 @@ def writeAnnotatedVideo(write_file,annotated_frames,fps):
 #####################################################
 
 def batchFrameLabel(video_file,labels_file,batch_size,
-                    label_dict = {'i':'INTERP','w':'walking','t':'turning','s':'standing'}):
+                    label_dict = {'i':'INTERP','s':'still','r':'rearing','w':'walking', 'q':'left turn', 'e':'right turn', 'a':'left turn [still]', 'd': 'right turn [still]', 'g':'grooming','m':'eating', 't':'explore', 'l':'leap'}):
+    
     '''
     This will check to see if a labels_file already exists. If so, you can choose to continue from 
     where you left off, or choose to overwrite. 
@@ -328,17 +329,17 @@ def batchFrameLabel(video_file,labels_file,batch_size,
     #print(batch_starts.shape)
     
     #warn user if they overwrote a navigation key
-    nav_keys = [',', '.', 'd', 'q']
+    nav_keys = [',', '.', 'f', 'q']
 
     if bool(label_dict.keys() & nav_keys) is True:
-        print("Warning: One of the navigation keys is overwritten. Do not use d, x, <, > as a labeling key.")
+        print("Warning: One of the navigation keys is overwritten. Do not use f, x, <, > as a labeling key.")
 
     #print all keys    
     print(""" 
     Navigation
     < : previous frame
     > : next frame
-    d : delete label
+    f : delete label
     x : quit
         """)
 
