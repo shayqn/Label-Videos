@@ -75,7 +75,7 @@ def setFrameCounter(frame_counter,num_frames):
     
     return frame_counter
 
-def PlayAndLabelFrames(frames,label_dict = {'i':'INTERP','w':'walking','t':'turning','s':'standing'},
+def PlayAndLabelFrames(frames,label_dict = {'i':'INTERP','w':'walking','t':'turning','s':'standing'}, overlap_labels=[],
                         return_labeled_frames=False):
     
     frames_out = frames.copy()
@@ -110,6 +110,12 @@ def PlayAndLabelFrames(frames,label_dict = {'i':'INTERP','w':'walking','t':'turn
     #cv2.resizeWindow('Video',frame_width,frame_height)
     cv2.createTrackbar('frame', 'Video', 0,num_frames,on_trackbar)
     
+    #show previous labels if they exist    
+    n_overlap_frames = len(overlap_labels)
+    
+    if n_overlap_frames is not 0:
+        frames_out[:n_overlap_frames] = annotate_frames(frames[:n_overlap_frames], overlap_labels)
+    
     '''
     Play & Label Video
     '''
@@ -122,6 +128,7 @@ def PlayAndLabelFrames(frames,label_dict = {'i':'INTERP','w':'walking','t':'turn
 
         #wait for keypress
         key = cv2.waitKey(0)
+               
 
         '''
         Check to see if the user pressed any of the label keys
@@ -139,7 +146,7 @@ def PlayAndLabelFrames(frames,label_dict = {'i':'INTERP','w':'walking','t':'turn
             
             #annotate the frame with the label text
             #cv2.rectangle(frame,(0,900),(250,800),(0,0,0),-1) #need a solid background so that...
-            cv2.rectangle(frame,(0,frame_height),(250,frame_height-100),(0,0,0),-1)
+            cv2.rectangle(frame,(0,frame_height),(300,frame_height-100),(0,0,0),-1)
             #...the labels can be overwritten
             cv2.putText(frame,label,(0,875),cv2.FONT_HERSHEY_COMPLEX,1,(255,255,255),2,cv2.LINE_AA)
             
@@ -165,11 +172,11 @@ def PlayAndLabelFrames(frames,label_dict = {'i':'INTERP','w':'walking','t':'turn
         elif key == ord('x'): #if `x` then quit
             playVideo = False
         
-        elif key == ord('d'):
+        elif key == ord('\b'):
             labels[frame_counter] = 0.0
             
-            #update rectangle to show lael is gone
-            cv2.rectangle(frame,(0,frame_height),(250,frame_height-100),(0,0,0),-1)
+            #update rectangle to show label is gone
+            cv2.rectangle(frame,(0,frame_height),(300,frame_height-100),(0,0,0),-1)
             cv2.putText(frame,'no_label',(0,875),cv2.FONT_HERSHEY_COMPLEX,1,(255,255,255),2,cv2.LINE_AA)
             frames_out[frame_counter] = frame
 
@@ -235,7 +242,7 @@ def annotate_frames(frames,labels):
     frames_out = frames.copy()
     
     num_frames = len(frames)
-    num_labels = labels.shape[0]
+    num_labels = len(labels)
     
     #position the box at the lower left corner
     box_width = 250
@@ -297,8 +304,9 @@ def writeAnnotatedVideo(write_file,annotated_frames,fps):
 ########## Batch Label Video #### ###################
 #####################################################
 
-def batchFrameLabel(video_file,labels_file,batch_size,
-                    label_dict = {'i':'INTERP','w':'walking','t':'turning','s':'standing'}):
+def batchFrameLabel(video_file,labels_file,batch_size,n_overlap_frames=10,
+                    label_dict = {'i':'INTERP','s':'still','r':'rearing','w':'walking', 'q':'left turn', 'e':'right turn', 'a':'left turn [still]', 'd': 'right turn [still]', 'g':'grooming','m':'eating', 't':'explore', 'l':'leap'}):
+    
     '''
     This will check to see if a labels_file already exists. If so, you can choose to continue from 
     where you left off, or choose to overwrite. 
@@ -324,21 +332,21 @@ def batchFrameLabel(video_file,labels_file,batch_size,
     video = cv2.VideoCapture(video_file)
     n_frames = video.get(cv2.CAP_PROP_FRAME_COUNT)
     #print(n_frames)
-    batch_starts = np.arange(start_frame,n_frames,batch_size)
+    batch_starts = np.arange(start_frame,n_frames,batch_size-n_overlap_frames)
     #print(batch_starts.shape)
     
     #warn user if they overwrote a navigation key
-    nav_keys = [',', '.', 'd', 'q']
+    #nav_keys = [',', '.', 'f', 'q']
 
-    if bool(label_dict.keys() & nav_keys) is True:
-        print("Warning: One of the navigation keys is overwritten. Do not use d, x, <, > as a labeling key.")
+    #if bool(label_dict.keys() & nav_keys) is True:
+    #    print("Warning: One of the navigation keys is overwritten. Do not use backspace, x, <, > as a labeling key.")
 
     #print all keys    
     print(""" 
     Navigation
     < : previous frame
     > : next frame
-    d : delete label
+    Backspace : delete label
     x : quit
         """)
 
@@ -349,6 +357,7 @@ def batchFrameLabel(video_file,labels_file,batch_size,
     
     label_in_progress = True
     current_ind = 0
+    overlap_labels = []
     
     while label_in_progress is True:
         
@@ -370,7 +379,7 @@ def batchFrameLabel(video_file,labels_file,batch_size,
             key = cv2.waitKey(1)
 
         # Label Frames
-        label_list = PlayAndLabelFrames(frames,label_dict=label_dict,return_labeled_frames=False)
+        label_list = PlayAndLabelFrames(frames,label_dict=label_dict,overlap_labels=overlap_labels,return_labeled_frames=False)
 
         label_list = interpolate_labels(label_list) #interpolate
 
@@ -411,6 +420,7 @@ def batchFrameLabel(video_file,labels_file,batch_size,
                 pass
             elif cont_input == 'c':
                 current_ind += 1
+                overlap_labels = label_list[batch_size-n_overlap_frames:]
             else:
                 print('Input not understood. Opening same batch for relabeling.')
 
@@ -420,6 +430,7 @@ def batchFrameLabel(video_file,labels_file,batch_size,
 
             if label_next_input == 'y':
                 current_ind += 1
+                overlap_labels = label_list[batch_size-n_overlap_frames:]
             elif label_next_input == 'n':
                 label_in_progress = False
             else:
