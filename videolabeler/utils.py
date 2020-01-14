@@ -87,6 +87,12 @@ def PlayAndLabelFrames(frames,label_dict = {'i':'INTERP','w':'walking','t':'turn
     '''
     #create numpy array to store the labels. Initialize as strings of zeros
     labels = np.zeros(len(frames)).astype('str')
+    
+    #write old overlap labels to the list
+    n_overlap_labels = len(overlap_labels)
+    if n_overlap_labels is not 0:
+        for ind in range(0, n_overlap_labels):
+            labels[ind] = overlap_labels[ind]
 
     #get the key ords and names for each label
     label_ords = [ord(k) for k in list(label_dict.keys())]
@@ -315,6 +321,7 @@ def batchFrameLabel(video_file,labels_file,batch_size,n_overlap_frames=10,
     #set start_frame to 0 and initiailize master_labels
     start_frame = 0
     master_labels = pd.DataFrame()
+    overlap_labels = []
 
     #overwrite start_frame & master_labels if user wants to continue labeling from existing label file
     if os.path.exists(labels_file):
@@ -322,7 +329,9 @@ def batchFrameLabel(video_file,labels_file,batch_size,n_overlap_frames=10,
         
         if continue_label_input == 'y':
             master_labels = pd.read_csv(labels_file,index_col=0)
-            start_frame = master_labels.frame.values[-1] + 1
+            last_label = int(master_labels.frame.values[-1])
+            start_frame = last_label - n_overlap_frames + 1
+            overlap_labels = master_labels["label"].tolist()[last_label - n_overlap_frames:last_label]
             print('Loaded in {}'.format(video_file))
             print('{} frames already labeled'.format(start_frame))
             
@@ -335,12 +344,6 @@ def batchFrameLabel(video_file,labels_file,batch_size,n_overlap_frames=10,
     batch_starts = np.arange(start_frame,n_frames,batch_size-n_overlap_frames)
     #print(batch_starts.shape)
     
-    #warn user if they overwrote a navigation key
-    #nav_keys = [',', '.', 'f', 'q']
-
-    #if bool(label_dict.keys() & nav_keys) is True:
-    #    print("Warning: One of the navigation keys is overwritten. Do not use backspace, x, <, > as a labeling key.")
-
     #print all keys    
     print(""" 
     Navigation
@@ -357,7 +360,6 @@ def batchFrameLabel(video_file,labels_file,batch_size,n_overlap_frames=10,
     
     label_in_progress = True
     current_ind = 0
-    overlap_labels = []
     
     while label_in_progress is True:
         
@@ -382,11 +384,6 @@ def batchFrameLabel(video_file,labels_file,batch_size,n_overlap_frames=10,
         label_list = PlayAndLabelFrames(frames,label_dict=label_dict,overlap_labels=overlap_labels,return_labeled_frames=False)
 
         label_list = interpolate_labels(label_list) #interpolate
-        
-        #write old overlap labels to the list if no new labels were made for the frame
-        if len(overlap_labels) is not 0:
-            for ind in range(0, n_overlap_frames):
-                if label_list[ind]=='0.0' : label_list[ind] = overlap_labels[ind]
 
         #Check for save            
         label_df = pd.DataFrame(data = {'label':label_list,'frame':np.arange(current_batch,current_batch + n_frames_to_read,1)})
