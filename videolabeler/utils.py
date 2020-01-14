@@ -382,7 +382,13 @@ def batchFrameLabel(video_file,labels_file,batch_size,n_overlap_frames=10,
         label_list = PlayAndLabelFrames(frames,label_dict=label_dict,overlap_labels=overlap_labels,return_labeled_frames=False)
 
         label_list = interpolate_labels(label_list) #interpolate
+        
+        #write old overlap labels to the list if no new labels were made for the frame
+        if len(overlap_labels) is not 0:
+            for ind in range(0, n_overlap_frames):
+                if label_list[ind]=='0.0' : label_list[ind] = overlap_labels[ind]
 
+        #Check for save            
         label_df = pd.DataFrame(data = {'label':label_list,'frame':np.arange(current_batch,current_batch + n_frames_to_read,1)})
 
         save_labels_input = input('Save labels? [y/n]: ')
@@ -397,6 +403,8 @@ def batchFrameLabel(video_file,labels_file,batch_size,n_overlap_frames=10,
 
         #Save labels
         if save_labels is True:
+            if len(overlap_labels) is not 0: #overwrite old labels
+                master_labels = master_labels[:-n_overlap_frames]
             master_labels = master_labels.append(label_df)
             master_labels.to_csv(labels_file)
 
