@@ -369,7 +369,7 @@ def batchFrameLabel(video_file,labels_file,batch_size,n_overlap_frames=10,
 
         # Read in video batch
         if current_batch == batch_starts[-1]:
-            n_frames_to_read = n_frames - current_batch
+            n_frames_to_read = int(n_frames - current_batch)
         else:
             n_frames_to_read = batch_size
         frames = []
