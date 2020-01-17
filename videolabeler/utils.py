@@ -291,6 +291,59 @@ def annotate_frames(frames,labels):
     return frames_out
 
 
+def double_annotate(frames,labels1, labels2):
+    
+    frames_out = frames.copy()
+    
+    num_frames = len(frames)
+    num_labels1 = len(labels1)
+    num_labels2 = len(labels2)
+    
+    #position the box at the lower left corner
+    box_width = 250
+    box_height = 75
+    frame_width = frames[0].shape[0]
+    frame_height = frames[0].shape[1]
+
+    start_xy_1 = (0,frame_height)
+    end_xy_1 = (box_width,frame_height-box_height)
+
+
+    #assert num_frames == num_labels,'number of frames must equal number of labels
+    num_to_label = min([num_frames, num_labels1, num_labels2])
+    
+
+    for i in range(num_frames):
+        
+        frame = frames_out[i].copy()
+        label1 = labels1[i]
+        label2 = labels2[i]
+        
+        
+        '''
+        for 1024x1280
+        #annotate the frame with the label text
+        cv2.rectangle(frame,(0,1024),(250,950),(0,0,0),-1) #need a solid background so that...
+        #...the labels can be overwritten
+        cv2.putText(frame,label,(0,1000),cv2.FONT_HERSHEY_COMPLEX,1,(255,255,255),2,cv2.LINE_AA)
+        '''
+        #annotate the frame with the label text
+        cv2.rectangle(frame,(0,900),(300,800),(0,0,0),-1) #solid black background
+        cv2.rectangle(frame,(800,900),(1100,800),(0,0,0),-1)
+        #label text
+
+        if label1 != '0.0':
+            cv2.putText(frame,label1,(0,875),cv2.FONT_HERSHEY_COMPLEX,1,(255,255,255),2,cv2.LINE_AA)
+            
+        if label2 != '0.0':
+            cv2.putText(frame,label2,(800,875),cv2.FONT_HERSHEY_COMPLEX,1,(255,255,255),2,cv2.LINE_AA)
+            
+            #overwrite the frame
+            frames_out[i] = frame
+    
+    return frames_out
+
+
 #####################################################
 ########## Write annotated video  ###################
 #####################################################
@@ -341,6 +394,7 @@ def batchFrameLabel(video_file,labels_file,batch_size,n_overlap_frames=10,
     #load in video
     video = cv2.VideoCapture(video_file)
     n_frames = video.get(cv2.CAP_PROP_FRAME_COUNT)
+    print(n_frames)
     #print(n_frames)
     batch_starts = np.arange(start_frame,n_frames,batch_size-n_overlap_frames)
     #print(batch_starts.shape)
@@ -571,3 +625,110 @@ def relabelFrames(video_file,labels_file,batch_size,n_overlap_frames=10,
             else:
                 print('Input not understood, defaulting to "yes"')
                 start_frame += batch_size
+                
+#####################################################
+########## Double View Mode #### ###################
+#####################################################                
+
+                
+def double_view(video_file,labels_file1,labels_file2,batch_size, label_dict = {'i':'INTERP','s':'still','r':'rearing','w':'walking', 'q':'left turn', 'e':'right turn', 'a':'left turn [still]', 'd': 'right turn [still]', 'g':'grooming','m':'eating', 't':'explore', 'l':'leap'}):
+    
+    '''
+    This will check to see if a labels_file already exists. If so, you can choose to continue from 
+    where you left off, or choose to overwrite. 
+    '''
+    
+    #get start frame from user
+    start_frame_input = input('What frame do you want to start relabeling? [enter an integer]: ')
+    start_frame = int(start_frame_input)
+
+    #read in labels
+    labels1 = pd.read_csv(labels_file1,index_col=0)
+    labels2 = pd.read_csv(labels_file2,index_col=0)
+    
+    #load in video
+    video = cv2.VideoCapture(video_file)
+    n_frames = video.get(cv2.CAP_PROP_FRAME_COUNT)
+    
+    label_in_progress = True
+    
+    while label_in_progress is True:       
+        
+        video.set(cv2.CAP_PROP_POS_FRAMES,start_frame)
+
+        # Read in video batch
+        if start_frame + batch_size > n_frames:
+            n_frames_to_read = n_frames - start_frame
+            end_labeling = True
+        else:
+            n_frames_to_read = batch_size
+            end_labeling = False
+        
+        frames = []
+        for i in tqdm(range(n_frames_to_read)):
+            ret, frame = video.read()
+            gray=cv2.cvtColor(frame,cv2.COLOR_BGR2GRAY)
+            frames.append(gray)
+            key = cv2.waitKey(1)
+
+        #annotate frames with previous labels
+        batch_labels1 = labels1[((labels1.frame >= start_frame) &
+                                (labels1.frame < start_frame + batch_size))].label.values
+
+        batch_labels2 = labels2[((labels2.frame >= start_frame) &
+                                (labels2.frame < start_frame + batch_size))].label.values
+        
+        labeled_frames = double_annotate(frames,batch_labels1, batch_labels2)
+        
+        # Label Frames
+        label_list = PlayAndLabelFrames(labeled_frames,label_dict=label_dict,return_labeled_frames=False,labels=batch_labels1)
+
+        #label_list = interpolate_labels(label_list) #interpolate
+
+        #Check for save 
+        #save_labels_input = input('Save labels? [y/n]: ')
+
+        #if save_labels_input == 'y':
+        #    save_labels = True
+        #elif save_labels_input == 'n':
+        #    save_labels = False
+        #else:
+        #    print('Input not understood, defaulting to yes')
+        #    save_labels = True
+
+        #Save labels
+        #if save_labels is True:
+            
+        #    labels.loc[((labels.frame >= batch_start_frame) &
+        #                        (labels.frame < start_frame + batch_size)),'label'] = label_list
+        #    labels.to_csv(labels_file)
+
+        # quit if there's nothing more, continue otherwise
+        if end_labeling is True:
+            break
+
+
+        #If user does not save, check if they want to relabel, quit or move on
+        #if save_labels is False:
+        #    cont_input = input('Continue to label? "n" for no, "r" for relabel current batch, or "c" for continue to next batch [n/r/c]: ')
+
+        #    if cont_input == 'n':
+        #        label_in_progress = False
+         #   elif cont_input == 'r':
+        #        pass
+        #    elif cont_input == 'c':
+        #        start_frame += batch_size
+        #    else:
+        #        print('Input not understood. Opening same batch for relabeling.')
+
+        #else: #otherwise, just ask if they want to label the next batch
+
+        label_next_input = input('See next batch? [y/n]: ')
+
+        if label_next_input == 'y':
+            start_frame += batch_size
+        elif label_next_input == 'n':
+            label_in_progress = False
+        else:
+            print('Input not understood, defaulting to "yes"')
+            start_frame += batch_size
