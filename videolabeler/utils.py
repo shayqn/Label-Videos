@@ -372,6 +372,8 @@ def batchFrameLabel(video_file,labels_file,batch_size,n_overlap_frames=10,
     where you left off, or choose to overwrite. 
     '''
     
+    labeler_name = input('Labeler name: ')
+    
     #set start_frame to 0 and initiailize master_labels
     start_frame = 0
     master_labels = pd.DataFrame()
@@ -439,10 +441,10 @@ def batchFrameLabel(video_file,labels_file,batch_size,n_overlap_frames=10,
         label_list = PlayAndLabelFrames(frames,label_dict=label_dict,overlap_labels=overlap_labels,return_labeled_frames=False)
 
         label_list = interpolate_labels(label_list) #interpolate
+               
+        label_df = pd.DataFrame(data = {'label':label_list,'frame':np.arange(current_batch,current_batch + n_frames_to_read,1), 'labeler': [labeler_name]*batch_size})
 
-        #Check for save            
-        label_df = pd.DataFrame(data = {'label':label_list,'frame':np.arange(current_batch,current_batch + n_frames_to_read,1)})
-
+        #Check for save
         save_labels_input = input('Save labels? [y/n]: ')
 
         if save_labels_input == 'y':
