@@ -396,7 +396,6 @@ def batchFrameLabel(video_file,labels_file,batch_size,n_overlap_frames=10,
     #load in video
     video = cv2.VideoCapture(video_file)
     n_frames = video.get(cv2.CAP_PROP_FRAME_COUNT)
-    print(n_frames)
     #print(n_frames)
     batch_starts = np.arange(start_frame,n_frames,batch_size-n_overlap_frames)
     #print(batch_starts.shape)
@@ -512,6 +511,7 @@ def relabelFrames(video_file,labels_file,batch_size,n_overlap_frames=10,
     This will check to see if a labels_file already exists. If so, you can choose to continue from 
     where you left off, or choose to overwrite. 
     '''
+    labeler_name = input('Labeler name: ')
     
     #get start frame from user
     start_frame_input = input('What frame do you want to start relabeling? [enter an integer]: ')
@@ -596,6 +596,8 @@ def relabelFrames(video_file,labels_file,batch_size,n_overlap_frames=10,
             
             labels.loc[((labels.frame >= batch_start_frame) &
                                 (labels.frame < batch_start_frame + batch_size)),'label'] = label_list
+            labels.loc[((labels.frame >= batch_start_frame) &
+                                (labels.frame < batch_start_frame + batch_size)),'labeler'] = [labeler_name]*batch_size
             labels.to_csv(labels_file)
 
         # quit if there's nothing more, continue otherwise
