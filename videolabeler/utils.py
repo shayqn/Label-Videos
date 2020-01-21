@@ -212,8 +212,7 @@ def interpolate_labels(labels):
     ['walking','INTERP','0','0','walking','0','walking']
 
     This function looks for frames labeled INTERP, and then applies the label from the frame
-    immediately before to all the frames up until the next label. The next label must be 
-    identical to the previous one, or else the interpolation fails. 
+    immediately before to all the frames up until the next label. 
 
     The output of the above labels after interpolation would be:
     ['walking','walking','walking','walking','0','walking']
@@ -234,9 +233,10 @@ def interpolate_labels(labels):
         next_labeled_frame = labeled_frames[np.where(labeled_frames > interp_frame)[0][0]]
         next_label = labels[next_labeled_frame]
 
-        assert label == next_label,'Interpolation failed because labels do not match'
+        #assert label == next_label,'Interpolation failed because labels do not match'
+        
 
-        labels_interp[interp_frame:next_labeled_frame] = label
+        labels_interp[interp_frame:next_labeled_frame-1] = label
         
     return labels_interp
 
