@@ -374,12 +374,22 @@ def batchFrameLabel(video_file,labels_file,batch_size,n_overlap_frames=10,
         else:
             n_frames_to_read = batch_size
         frames = []
-
-        for i in tqdm(range(n_frames_to_read)):
+        
+        # access each frame with video.set() to avoid dropped frames in stream()
+        frames_to_read = np.arange(current_batch, current_batch + n_frames_to_read, 1)
+        for i in tqdm(frames_to_read):
+            video.set(cv2.CAP_PROP_POS_FRAMES,i)
             ret, frame = video.read()
             gray=cv2.cvtColor(frame,cv2.COLOR_BGR2GRAY)
             frames.append(gray)
             key = cv2.waitKey(1)
+            
+                
+        #for i in tqdm(range(n_frames_to_read)):
+        #    ret, frame = video.read()
+        #    gray=cv2.cvtColor(frame,cv2.COLOR_BGR2GRAY)
+        #    frames.append(gray)
+        #    key = cv2.waitKey(1)
 
         # Label Frames
         label_list = PlayAndLabelFrames(frames,label_dict=label_dict,overlap_labels=overlap_labels,return_labeled_frames=False)
@@ -507,11 +517,20 @@ def relabelFrames(video_file,labels_file,batch_size,n_overlap_frames=10,
             end_labeling = False
         
         frames = []
-        for i in tqdm(range(n_frames_to_read)):
+        # access each frame with video.set() to avoid dropped frames in stream()
+        frames_to_read = np.arange(batch_start_frame, batch_start_frame + n_frames_to_read, 1)
+        for i in tqdm(frames_to_read):
+            video.set(cv2.CAP_PROP_POS_FRAMES,i)
             ret, frame = video.read()
             gray=cv2.cvtColor(frame,cv2.COLOR_BGR2GRAY)
             frames.append(gray)
             key = cv2.waitKey(1)
+        
+        #for i in tqdm(range(n_frames_to_read)):
+        #    ret, frame = video.read()
+        #    gray=cv2.cvtColor(frame,cv2.COLOR_BGR2GRAY)
+        #    frames.append(gray)
+        #    key = cv2.waitKey(1)
 
         #annotate frames with previous labels
         batch_labels = labels[((labels.frame >= batch_start_frame) &
