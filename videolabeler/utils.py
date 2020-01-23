@@ -6,6 +6,7 @@ from skvideo.io import FFmpegWriter
 import numpy as np
 import pandas as pd
 import os
+import random
 
 #####################################################
 ####### Load Video Frames ##########################
@@ -278,7 +279,7 @@ def annotate_frames(frames,labels):
         cv2.putText(frame,label,(0,1000),cv2.FONT_HERSHEY_COMPLEX,1,(255,255,255),2,cv2.LINE_AA)
         '''
         #annotate the frame with the label text
-        cv2.rectangle(frame,(0,900),(250,800),(0,0,0),-1) #solid black background
+        cv2.rectangle(frame,(0,900),(300,800),(0,0,0),-1) #solid black background
         #label text
 
         if label != '0.0':
@@ -441,7 +442,7 @@ def batchFrameLabel(video_file,labels_file,batch_size,n_overlap_frames=10,
 
         label_list = interpolate_labels(label_list) #interpolate
                
-        label_df = pd.DataFrame(data = {'label':label_list,'frame':np.arange(current_batch,current_batch + n_frames_to_read,1), 'labeler': [labeler_name]})
+        label_df = pd.DataFrame(data = {'label':label_list,'frame':np.arange(current_batch,current_batch + n_frames_to_read,1), 'labeler': [labeler_name]*batch_size})
 
         #Check for save
         save_labels_input = input('Save labels? [y/n]: ')
@@ -662,7 +663,7 @@ def double_view(video_file,labels_file1,labels_file2,batch_size, label_dict = {'
 
         # Read in video batch
         if start_frame + batch_size > n_frames:
-            n_frames_to_read = n_frames - start_frame
+            n_frames_to_read = int(n_frames - start_frame)
             end_labeling = True
         else:
             n_frames_to_read = batch_size
@@ -736,3 +737,83 @@ def double_view(video_file,labels_file1,labels_file2,batch_size, label_dict = {'
         else:
             print('Input not understood, defaulting to "yes"')
             start_frame += batch_size
+            
+            
+#####################################################
+########## Window and Inspect #### ###################
+#####################################################                
+
+#given a list of labels, return list with most common label and consensus 
+def smooth_labels(labels):
+    common_label = max(set(labels), key=labels.count)
+    consensus =labels.count(common_label)/len(labels)
+    
+    return [common_label, consensus]
+
+                
+def window_and_inspect(video_file, label_file, window_size=10, overlap_size=3):
+    
+    video = cv2.VideoCapture(video_file)
+    
+    #read in labels
+    df = pd.read_csv(label_file,index_col=0)
+    labels = df["label"].to_list()
+    
+    #initialize windows
+    window_starts = np.arange(0,len(labels),window_size-overlap_size)
+    windows = {key: [] for key in window_starts}
+    
+    #associate each start of window with a label and consensus
+    for window_start in window_starts:
+        
+        if window_start == window_starts[-1]:
+            size = len(labels) - window_start
+        else:
+            size = window_size
+            
+        windows[window_start] = smooth_labels(labels[window_start:window_start+size])
+    
+    
+    inspect = True
+    n_frames = video.get(cv2.CAP_PROP_FRAME_COUNT)
+    
+    #manual check
+    while inspect is True:
+        
+        current_window = random.choice(window_starts)
+        
+        #Read in video batch
+        video.set(cv2.CAP_PROP_POS_FRAMES, current_window)
+        frames = []
+        
+        if current_window == window_starts[-1]:
+            n_frames_to_read = int(n_frames - current_window)
+        else:
+            n_frames_to_read = window_size
+
+        for i in tqdm(range(n_frames_to_read)):
+            ret, frame = video.read()
+            gray=cv2.cvtColor(frame,cv2.COLOR_BGR2GRAY)
+            frames.append(gray)
+            key = cv2.waitKey(1)
+
+        #annotate frames with label + consensus
+        label = windows[current_window][0] + ' ' + str(windows[current_window][1])
+        
+        labeled_frames = annotate_frames(frames, [label]*n_frames_to_read)
+        
+        # Label Frames
+        PlayAndLabelFrames(labeled_frames)
+        
+        label_next_input = input('See another batch? [y/n]: ')
+
+        if label_next_input == 'n':
+            inspect = False
+    
+    return windows
+
+    
+    
+    
+    
+   
