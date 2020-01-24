@@ -761,7 +761,7 @@ def smooth_labels(labels):
     return common_label, consensus
 
                 
-def window_and_inspect(video_file, label_file, window_size=10, overlap_size=3):
+def window_and_inspect(video_file, label_file, window_size=10, overlap_size=3,start_frame=None):
     
     video = cv2.VideoCapture(video_file)
     
@@ -769,59 +769,36 @@ def window_and_inspect(video_file, label_file, window_size=10, overlap_size=3):
     df = pd.read_csv(label_file,index_col=0)
     labels = df["label"].to_list()
     
-    #initialize windows
-    #window_starts = np.arange(0,len(labels),window_size-overlap_size)
-    #windows = {key: [] for key in window_starts}
     
-    #associate each start of window with a label and consensus
-    #for window_start in window_starts:
-        
-    #    if window_start == window_starts[-1]:
-    #        size = len(labels) - window_start
-    #    else:
-    #        size = window_size
-    #        
-    #    windows[window_start] = smooth_labels(labels[window_start:window_start+size])
-    
-    
-    inspect = True
     n_frames = video.get(cv2.CAP_PROP_FRAME_COUNT)
     
-    #manual check
-    while inspect is True:
-        
-        current_window = random.randint(0, n_frames - window_size)
-        print('Frames: ' + str(current_window) + ' to ' + str(current_window+window_size))
-        
-        #Read in video batch
-        video.set(cv2.CAP_PROP_POS_FRAMES, current_window)
-        frames = []
-
-        for i in tqdm(range(window_size)):
-            ret, frame = video.read()
-            gray=cv2.cvtColor(frame,cv2.COLOR_BGR2GRAY)
-            frames.append(gray)
-            key = cv2.waitKey(1)
-
-        #annotate frames with label + consensus
-        raw_labels = labels[current_window:current_window + window_size]
-        
-        label, consensus = smooth_labels(raw_labels)
-        
-        con_label = label + ' (' + str(consensus) + ')'
-        
-        labeled_frames = annotate_with_consensus(frames, raw_labels, [con_label]*window_size)
-        
-        # Label Frames
-        PlayAndLabelFrames(labeled_frames)
-        
-        label_next_input = input('See another batch? [y/n]: ')
-
-        if label_next_input == 'n':
-            inspect = False
+    #if start_frame isn't specified, choose it randomely.
+    if start_frame is None:    
+        start_frame = random.randint(0, n_frames - window_size)
     
-    #return windows
+    print('Frames: ' + str(start_frame) + ' to ' + str(start_frame+window_size))
+    
+    #Read in video batch
+    video.set(cv2.CAP_PROP_POS_FRAMES, start_frame)
+    frames = []
 
+    for i in tqdm(range(window_size)):
+        ret, frame = video.read()
+        gray=cv2.cvtColor(frame,cv2.COLOR_BGR2GRAY)
+        frames.append(gray)
+        key = cv2.waitKey(1)
+
+    #annotate frames with label + consensus
+    raw_labels = labels[start_frame:start_frame + window_size]
+    
+    label, consensus = smooth_labels(raw_labels)
+    
+    con_label = label + ' (' + str(consensus) + ')'
+    
+    labeled_frames = annotate_with_consensus(frames, raw_labels, [con_label]*window_size)
+    
+    # Label Frames
+    PlayAndLabelFrames(labeled_frames)
     
     
     
