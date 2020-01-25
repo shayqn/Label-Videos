@@ -7,8 +7,6 @@ import numpy as np
 import pandas as pd
 import os
 import random
-import matplotlib.pyplot as plt
-from natsort import natsorted
 
 #####################################################
 ####### Load Video Frames ##########################
@@ -416,20 +414,17 @@ def writeAnnotatedVideo(write_file,annotated_frames,fps):
 #####################################################
 ########## Image Loading  ###################
 #####################################################
-def load_tiff(data_dir):
-    
-    sorted_frames = natsorted(os.listdir(data_dir))
-    
-    images = [data_dir + i for i in sorted_frames if os.path.splitext(i)[1] == '.tiff']
 
-    video = []
-
-    #label_files = [label_files[1]]
-
-    for i in images:
-        video.append(plt.imread(i))
+#load batch of tiff images, given location, start and size of desired batch
+def loadTiffBatch(video_dir, start, size):
     
-    return video
+    batch = []
+    
+    for i in range(start, start + size):
+        filename = os.path.join(video_dir, 'frame_' + str(i) + '.tiff')
+        batch.append(cv2.imread(filename))
+    
+    return batch
     
     
 #####################################################
@@ -723,7 +718,6 @@ def relabelTiff(video_dir,labels_file,batch_size,n_overlap_frames=10,
     
     #video = load_tiff(video_dir)
     n_frames = len([i for i in os.listdir(video_dir) if os.path.splitext(i)[1] == '.tiff'])
-    print(n_frames)
 
     #batch_starts = np.arange(start_frame,n_frames,batch_size-n_overlap_frames)
     
@@ -759,11 +753,7 @@ def relabelTiff(video_dir,labels_file,batch_size,n_overlap_frames=10,
             end_labeling = False
             
         #load frames    
-        frames =[]
-        
-        for i in range(batch_start_frame, batch_start_frame + batch_size):
-            filename = os.path.join(video_dir, 'frame_' + str(i) + '.tiff')
-            frames.append(plt.imread(filename))
+        frames = loadTiffBatch(video_dir, batch_start_frame, batch_size)
 
         #annotate frames with previous labels
         batch_labels = labels[((labels.frame >= batch_start_frame) &
@@ -926,6 +916,7 @@ def window_and_inspect(video_file, label_file, window_size=10, overlap_size=3,st
     
     #Read in video batch
     video.set(cv2.CAP_PROP_POS_FRAMES, start_frame)
+    
     frames = []
 
     for i in tqdm(range(window_size)):
@@ -945,8 +936,38 @@ def window_and_inspect(video_file, label_file, window_size=10, overlap_size=3,st
     
     # Label Frames
     PlayAndLabelFrames(labeled_frames)
+
     
     
+def window_and_inspect_tiff(video_dir, label_file, window_size=10, overlap_size=3,start_frame=None):
+    
+    #read in labels
+    df = pd.read_csv(label_file,index_col=0)
+    labels = df["label"].to_list()   
+    
+    n_frames = len([i for i in os.listdir(video_dir) if os.path.splitext(i)[1] == '.tiff'])
+    
+    #if start_frame isn't specified, choose it randomely.
+    if start_frame is None:    
+        start_frame = random.randint(0, n_frames - window_size)
+    
+    print('Frames: ' + str(start_frame) + ' to ' + str(start_frame+window_size))
+    
+    #Read in video batch
+    
+    frames = loadTiffBatch(video_dir, start_frame, window_size)
+
+    #annotate frames with label + consensus
+    raw_labels = labels[start_frame:start_frame + window_size]
+    
+    label, consensus = smooth_labels(raw_labels)
+    
+    con_label = label + ' (' + str(consensus) + ')'
+    
+    labeled_frames = annotate_with_consensus(frames, raw_labels, [con_label]*window_size)
+    
+    # Label Frames
+    PlayAndLabelFrames(labeled_frames)    
     
     
    
