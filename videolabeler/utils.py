@@ -436,7 +436,7 @@ def load_tiff(data_dir):
 ########## Batch Label Video #### ###################
 #####################################################
 
-def batchFrameLabel(data_dir,labels_file,batch_size,n_overlap_frames=10,
+def batchFrameLabel(video_file,labels_file,batch_size,n_overlap_frames=10,
                     label_dict = {'i':'INTERP','s':'still','r':'rearing','w':'walking', 'q':'left turn', 'e':'right turn', 'a':'left turn [still]', 'd': 'right turn [still]', 'g':'grooming','m':'eating', 't':'explore', 'l':'leap'}):
     
     '''
@@ -674,9 +674,9 @@ def relabelFrames(video_file,labels_file,batch_size,n_overlap_frames=10,
                                 (labels.frame < batch_start_frame + batch_size)),'labeler'] = [labeler_name]*batch_size
             labels.to_csv(labels_file)
 
-        # quit if there's nothing more, continue otherwise
-        #if end_labeling is True:
-        #    break
+        #quit if there's nothing else    
+        if end_labeling is True:
+            break
 
 
         #If user does not save, check if they want to relabel, quit or move on
@@ -722,7 +722,8 @@ def relabelTiff(video_dir,labels_file,batch_size,n_overlap_frames=10,
     labels = pd.read_csv(labels_file,index_col=0)
     
     #video = load_tiff(video_dir)
-    n_frames = len(os.listdir(video_dir))
+    n_frames = len([i for i in os.listdir(video_dir) if os.path.splitext(i)[1] == '.tiff'])
+    print(n_frames)
 
     #batch_starts = np.arange(start_frame,n_frames,batch_size-n_overlap_frames)
     
@@ -749,6 +750,14 @@ def relabelTiff(video_dir,labels_file,batch_size,n_overlap_frames=10,
         else:
             batch_start_frame = start_frame - n_overlap_frames
 
+        #Read in video batch
+        if batch_start_frame + batch_size > n_frames:
+            n_frames_to_read = n_frames - batch_start_frame
+            end_labeling = True
+        else:
+            n_frames_to_read = batch_size
+            end_labeling = False
+            
         #load frames    
         frames =[]
         
@@ -789,8 +798,8 @@ def relabelTiff(video_dir,labels_file,batch_size,n_overlap_frames=10,
             labels.to_csv(labels_file)
 
         # quit if there's nothing more, continue otherwise
-        #if end_labeling is True:
-        #    break
+        if start_frame > n_frames - batch_size:
+            break
 
 
         #If user does not save, check if they want to relabel, quit or move on
