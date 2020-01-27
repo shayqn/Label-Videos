@@ -624,7 +624,7 @@ def relabelFrames(video_file,labels_file,batch_size,n_overlap_frames=10,
 
         #Read in video batch
         if batch_start_frame + batch_size > n_frames:
-            n_frames_to_read = n_frames - batch_start_frame
+            n_frames_to_read = int(n_frames - batch_start_frame)
             end_labeling = True
         else:
             n_frames_to_read = batch_size
