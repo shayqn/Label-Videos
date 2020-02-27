@@ -132,6 +132,7 @@ def PlayAndLabelFrames(frames,label_dict = {'i':'INTERP','w':'walking','t':'turn
         #get current frame & display it
         frame_counter = cv2.getTrackbarPos('frame','Video')
         frame = frames_out[frame_counter].copy()
+        
         cv2.imshow('Video',frame)
 
         #wait for keypress
@@ -154,9 +155,9 @@ def PlayAndLabelFrames(frames,label_dict = {'i':'INTERP','w':'walking','t':'turn
             
             #annotate the frame with the label text
             #cv2.rectangle(frame,(0,900),(250,800),(0,0,0),-1) #need a solid background so that...
-            cv2.rectangle(frame,(0,frame_height),(300,frame_height-100),(0,0,0),-1)
+            #cv2.rectangle(frame,(0,frame_height),(300,frame_height-50),(0,0,0),-1)
             #...the labels can be overwritten
-            cv2.putText(frame,label,(0,875),cv2.FONT_HERSHEY_COMPLEX,1,(255,255,255),2,cv2.LINE_AA)
+            cv2.putText(frame,label,(0,frame_height-15),cv2.FONT_HERSHEY_COMPLEX,1,(0,0,0),2,cv2.LINE_AA)
             
             
             #update the frame (with annotation)
@@ -184,8 +185,8 @@ def PlayAndLabelFrames(frames,label_dict = {'i':'INTERP','w':'walking','t':'turn
             labels[frame_counter] = 0.0
             
             #update rectangle to show label is gone
-            cv2.rectangle(frame,(0,frame_height),(300,frame_height-100),(0,0,0),-1)
-            cv2.putText(frame,'no_label',(0,875),cv2.FONT_HERSHEY_COMPLEX,1,(255,255,255),2,cv2.LINE_AA)
+            cv2.rectangle(frame,(0,frame_height),(300,frame_height-50),(255, 255, 255),-1)
+            cv2.putText(frame,'no_label',(0,frame_height-15),cv2.FONT_HERSHEY_COMPLEX,1,(0, 0, 0),2,cv2.LINE_AA)
             frames_out[frame_counter] = frame
 
 
@@ -257,6 +258,7 @@ def annotate_frames(frames,labels):
     box_height = 75
     frame_width = frames[0].shape[0]
     frame_height = frames[0].shape[1]
+    print(frame_height)
 
     start_xy = (0,frame_height)
     end_xy = (box_width,frame_height-box_height)
@@ -279,12 +281,11 @@ def annotate_frames(frames,labels):
         cv2.putText(frame,label,(0,1000),cv2.FONT_HERSHEY_COMPLEX,1,(255,255,255),2,cv2.LINE_AA)
         '''
         #annotate the frame with the label text
-        cv2.rectangle(frame,(0,900),(300,800),(0,0,0),-1) #solid black background
+        #cv2.rectangle(frame,(0,frame_height),(300,frame_height-50),(0,0,0),-1) #solid black background
         #label text
 
         if label != '0.0':
-            cv2.putText(frame,label,(0,875),cv2.FONT_HERSHEY_COMPLEX,1,(255,255,255),2,cv2.LINE_AA)
-            
+            cv2.putText(frame,label,(0,985),cv2.FONT_HERSHEY_COMPLEX,1,(0, 0, 0),2,cv2.LINE_AA)
             
             #overwrite the frame
             frames_out[i] = frame
@@ -329,15 +330,15 @@ def double_annotate(frames,labels1, labels2):
         cv2.putText(frame,label,(0,1000),cv2.FONT_HERSHEY_COMPLEX,1,(255,255,255),2,cv2.LINE_AA)
         '''
         #annotate the frame with the label text
-        cv2.rectangle(frame,(0,900),(300,800),(0,0,0),-1) #solid black background
-        cv2.rectangle(frame,(800,900),(1100,800),(0,0,0),-1)
+        #cv2.rectangle(frame,(0,900),(300,800),(0,0,0),-1) #solid black background
+        #cv2.rectangle(frame,(800,900),(1100,800),(0,0,0),-1)
         #label text
 
         if label1 != '0.0':
-            cv2.putText(frame,label1,(0,875),cv2.FONT_HERSHEY_COMPLEX,1,(255,255,255),2,cv2.LINE_AA)
+            cv2.putText(frame,label,(0,985),cv2.FONT_HERSHEY_COMPLEX,1,(0, 0, 0),2,cv2.LINE_AA)
             
         if label2 != '0.0':
-            cv2.putText(frame,label2,(800,875),cv2.FONT_HERSHEY_COMPLEX,1,(255,255,255),2,cv2.LINE_AA)
+            cv2.putText(frame,label2,(800,985),cv2.FONT_HERSHEY_COMPLEX,1,(0, 0, 0),2,cv2.LINE_AA)
             
             #overwrite the frame
             frames_out[i] = frame
@@ -385,10 +386,10 @@ def annotate_with_consensus(frames, original_labels, consensus_labels):
         #label text
 
         if label != '0.0':
-            cv2.putText(frame,label,(0,875),cv2.FONT_HERSHEY_COMPLEX,1,(255,255,255),2,cv2.LINE_AA)
+            cv2.putText(frame,label,(0,985),cv2.FONT_HERSHEY_COMPLEX,1,(0, 0, 0),2,cv2.LINE_AA)
             
         if con_label != '0.0':
-            cv2.putText(frame,con_label,(0,75),cv2.FONT_HERSHEY_COMPLEX,1,(255,255,255),2,cv2.LINE_AA)    
+            cv2.putText(frame,con_label,(0,85),cv2.FONT_HERSHEY_COMPLEX,1,(0, 0, 0),2,cv2.LINE_AA)    
         
         #overwrite the frame
         frames_out[i] = frame
@@ -417,12 +418,23 @@ def writeAnnotatedVideo(write_file,annotated_frames,fps):
 
 #load batch of tiff images, given location, start and size of desired batch
 def loadTiffBatch(video_dir, start, size):
+    bordersize = 50
     
     batch = []
     
     for i in range(start, start + size):
         filename = os.path.join(video_dir, 'frame_' + str(i) + '.tiff')
-        batch.append(cv2.imread(filename))
+        img = cv2.imread(filename)
+        border = cv2.copyMakeBorder(
+            img,
+            top=bordersize,
+            bottom=bordersize,
+            left=bordersize,
+            right=bordersize,
+            borderType=cv2.BORDER_CONSTANT,
+            value = [16777215, 16777215, 16777215]
+        )
+        batch.append(border)
     
     return batch
     
@@ -438,6 +450,7 @@ def batchFrameLabel(video_file,labels_file,batch_size,n_overlap_frames=10,
     This will check to see if a labels_file already exists. If so, you can choose to continue from 
     where you left off, or choose to overwrite. 
     '''
+    bordersize = 50
     
     labeler_name = input('Labeler name: ')
     
@@ -503,7 +516,16 @@ def batchFrameLabel(video_file,labels_file,batch_size,n_overlap_frames=10,
         for i in tqdm(range(n_frames_to_read)):
             ret, frame = video.read()
             gray=cv2.cvtColor(frame,cv2.COLOR_BGR2GRAY)
-            frames.append(gray)
+            border = cv2.copyMakeBorder(
+                gray,
+                top=bordersize,
+                bottom=bordersize,
+                left=bordersize,
+                right=bordersize,
+                borderType=cv2.BORDER_CONSTANT,
+                value = [16777215, 16777215, 16777215]
+            )
+            frames.append(border)
             key = cv2.waitKey(1)
 
         # Label Frames
@@ -529,7 +551,7 @@ def batchFrameLabel(video_file,labels_file,batch_size,n_overlap_frames=10,
             if len(overlap_labels) is not 0: #overwrite old labels
                 master_labels = master_labels[:-n_overlap_frames]
             master_labels = master_labels.append(label_df)
-            master_labels.to_csv(labels_file)
+            master_labels.to_csv(labels_file, float_format='%g')
 
             #print progress
             n_labeled = master_labels.shape[0]
@@ -581,6 +603,7 @@ def relabelFrames(video_file,labels_file,batch_size,n_overlap_frames=10,
     This will check to see if a labels_file already exists. If so, you can choose to continue from 
     where you left off, or choose to overwrite. 
     '''
+    bordersize = 50
     labeler_name = input('Labeler name: ')
     
     #get start frame from user
@@ -634,7 +657,16 @@ def relabelFrames(video_file,labels_file,batch_size,n_overlap_frames=10,
         for i in tqdm(range(n_frames_to_read)):
             ret, frame = video.read()
             gray=cv2.cvtColor(frame,cv2.COLOR_BGR2GRAY)
-            frames.append(gray)
+            border = cv2.copyMakeBorder(
+                gray,
+                top=bordersize,
+                bottom=bordersize,
+                left=bordersize,
+                right=bordersize,
+                borderType=cv2.BORDER_CONSTANT,
+                value = [16777215, 16777215, 16777215]
+            )
+            frames.append(border)
             key = cv2.waitKey(1)
 
         #annotate frames with previous labels
@@ -828,6 +860,7 @@ def double_view(video_file,labels_file1,labels_file2,batch_size, label_dict = {'
     This will check to see if a labels_file already exists. If so, you can choose to continue from 
     where you left off, or choose to overwrite. 
     '''
+    bordersize = 50
     
     #get start frame from user
     start_frame_input = input('What frame do you want to start relabeling? [enter an integer]: ')
@@ -859,7 +892,16 @@ def double_view(video_file,labels_file1,labels_file2,batch_size, label_dict = {'
         for i in tqdm(range(n_frames_to_read)):
             ret, frame = video.read()
             gray=cv2.cvtColor(frame,cv2.COLOR_BGR2GRAY)
-            frames.append(gray)
+            border = cv2.copyMakeBorder(
+                gray,
+                top=bordersize,
+                bottom=bordersize,
+                left=bordersize,
+                right=bordersize,
+                borderType=cv2.BORDER_CONSTANT,
+                value = [16777215, 16777215, 16777215]
+            )
+            frames.append(border)
             key = cv2.waitKey(1)
 
         #annotate frames with previous labels
@@ -899,6 +941,7 @@ def smooth_labels(labels):
                 
 def window_and_inspect(video_file, label_file, window_size=10, overlap_size=3,start_frame=None):
     
+    bordersize = 50
     video = cv2.VideoCapture(video_file)
     
     #read in labels
@@ -922,7 +965,16 @@ def window_and_inspect(video_file, label_file, window_size=10, overlap_size=3,st
     for i in tqdm(range(window_size)):
         ret, frame = video.read()
         gray=cv2.cvtColor(frame,cv2.COLOR_BGR2GRAY)
-        frames.append(gray)
+        border = cv2.copyMakeBorder(
+                gray,
+                top=bordersize,
+                bottom=bordersize,
+                left=bordersize,
+                right=bordersize,
+                borderType=cv2.BORDER_CONSTANT,
+                value = [16777215, 16777215, 16777215]
+            )
+        frames.append(border)
         key = cv2.waitKey(1)
 
     #annotate frames with label + consensus
@@ -968,6 +1020,4 @@ def window_and_inspect_tiff(video_dir, label_file, window_size=10, overlap_size=
     
     # Label Frames
     PlayAndLabelFrames(labeled_frames)    
-    
-    
    
