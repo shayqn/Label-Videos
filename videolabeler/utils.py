@@ -83,6 +83,8 @@ def PlayAndLabelFrames(frames,label_dict = {'i':'INTERP','w':'walking','t':'turn
     frame_height = frames_out[0].shape[0]
     frame_width = frames_out[0].shape[1]
     
+    bordersize=50
+    
     '''
     Set up variables
     '''
@@ -139,6 +141,7 @@ def PlayAndLabelFrames(frames,label_dict = {'i':'INTERP','w':'walking','t':'turn
         key = cv2.waitKey(0)
                
 
+
         '''
         Check to see if the user pressed any of the label keys
         '''
@@ -155,7 +158,7 @@ def PlayAndLabelFrames(frames,label_dict = {'i':'INTERP','w':'walking','t':'turn
             
             #annotate the frame with the label text
             #cv2.rectangle(frame,(0,900),(250,800),(0,0,0),-1) #need a solid background so that...
-            #cv2.rectangle(frame,(0,frame_height),(300,frame_height-50),(0,0,0),-1)
+            cv2.rectangle(frame,(0,frame_height),(300,frame_height-50),(255,255,255),-1)
             #...the labels can be overwritten
             cv2.putText(frame,label,(0,frame_height-15),cv2.FONT_HERSHEY_COMPLEX,1,(0,0,0),2,cv2.LINE_AA)
             
@@ -164,10 +167,6 @@ def PlayAndLabelFrames(frames,label_dict = {'i':'INTERP','w':'walking','t':'turn
             frames_out[frame_counter] = frame
             #update the label array with current label
             labels[frame_counter] = label
-
-            '''
-        Now check to see if the user to trying to control the playback
-        '''
         elif key == ord(','): # if `<` then go back
             frame_counter -= 1
             frame_counter = setFrameCounter(frame_counter,num_frames)
