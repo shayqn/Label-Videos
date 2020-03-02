@@ -58,6 +58,67 @@ def PlayVideoFrames(frames):
             
     cv2.destroyAllWindows()
     cv2.waitKey(1)
+    
+
+#####################################################
+####### Interpolation GUI functions #################
+#####################################################
+
+def interp_annotate(frames, tent_label):
+    '''
+    INPUTS:
+    frames: all frames where interpolation mode is active
+    tent_label <str>: tentative label
+    
+    OUTPUTS:
+    updated frames where everything has grey tent_label and green borders
+    '''
+    
+    frame_height = frames[0].shape[0]
+    frame_width = frames[0].shape[1]
+    annotated_frames = []
+    
+    for frame in frames:
+        cv2.rectangle(frame,(0,frame_height),(frame_width,frame_height-50),(0,255,0),-1)
+        cv2.rectangle(frame,(0,50),(frame_width,0),(0,255,0),-1)
+        cv2.rectangle(frame,(0,frame_height),(50,0),(0,255,0),-1)
+        cv2.rectangle(frame,(frame_width-50,frame_height),(frame_width,0),(0,255,0),-1)
+
+        cv2.putText(frame,tent_label,(0,frame_height-15),cv2.FONT_HERSHEY_COMPLEX,1,(160,160,160),2,cv2.LINE_AA)
+
+        annotated_frames.append(frame)
+    
+    return annotated_frames
+
+
+def interp_close(frames, tent_label, stop_ind):
+    '''
+    INPUTS:
+    frames: all frames with green borders and tentative labels that we want gone
+    tent_label <str>: label
+    stop_ind <int>: stop index, assuming first frame of input batch is 0
+    
+    OUTPUTS:
+    frames where all frames have white borders and frames until stop_index have black tent_label
+    '''
+    
+    frame_height = frames[0].shape[0]
+    frame_width = frames[0].shape[1]
+    annotated_frames = []
+    
+    for current_ind, frame in enumerate(frames):
+        cv2.rectangle(frame,(0,frame_height),(frame_width,frame_height-50),(255,255,255),-1)
+        cv2.rectangle(frame,(0,50),(frame_width,0),(255,255,255),-1)
+        cv2.rectangle(frame,(0,frame_height),(50,0),(255,255,255),-1)
+        cv2.rectangle(frame,(frame_width-50,frame_height),(frame_width,0),(255,255,255),-1)
+
+        if current_ind <= stop_ind:
+            cv2.putText(frame,tent_label,(0,frame_height-15),cv2.FONT_HERSHEY_COMPLEX,1,(0,0,0),2,cv2.LINE_AA)
+
+        annotated_frames.append(frame)
+    
+    return annotated_frames
+        
 
 #####################################################
 ####### Play & Label Video Frames ###################
@@ -76,7 +137,7 @@ def setFrameCounter(frame_counter,num_frames):
     
     return frame_counter
 
-def PlayAndLabelFrames(frames,label_dict = {'i':'INTERP','w':'walking','t':'turning','s':'standing'}, overlap_labels=[],
+def PlayAndLabelFrames(frames,label_dict = {'w':'walking','t':'turning','s':'standing'}, overlap_labels=[],
                         return_labeled_frames=False,labels = []):
     
     frames_out = frames.copy()
@@ -126,6 +187,9 @@ def PlayAndLabelFrames(frames,label_dict = {'i':'INTERP','w':'walking','t':'turn
     if n_overlap_frames is not 0:
         frames_out[:n_overlap_frames] = annotate_frames(frames[:n_overlap_frames], overlap_labels)
     
+    interp_mode = False
+    tent_label_ind = None
+    
     '''
     Play & Label Video
     '''
@@ -141,11 +205,52 @@ def PlayAndLabelFrames(frames,label_dict = {'i':'INTERP','w':'walking','t':'turn
         key = cv2.waitKey(0)
                
 
-
         '''
-        Check to see if the user pressed any of the label keys
+        Check to see if the user is using interpolation
         '''
-        if key in label_ords:
+        if key == ord('i'):
+            
+            #opening interpolate mode
+            if interp_mode == False:
+                #find last label
+                nonzero_labels=[ind for ind, label in enumerate(labels) if label != '0.0']
+                tent_label_ind = nonzero_labels[len(nonzero_labels)-1]
+                tent_label = labels[tent_label_ind]
+                
+                #update GUI
+                frames_out[tent_label_ind:] = interp_annotate(frames[tent_label_ind:], tent_label)
+                
+                #interp mode is activated
+                interp_mode = True
+                
+            #closing interpolate mode
+            else:
+                '''
+                Current implementation of interpolate assumes strictly chronological labeling due to the way the last label is found. 
+                You can't interpolate backwards
+                Once you used interpolate, you can't use it for frames before where you last used interpolate
+                '''
+                if frame_counter < tent_label_ind:
+                    continue
+                
+                #find tentative label
+                tent_label = labels[tent_label_ind]
+                
+                #update GUI
+                frames_out[tent_label_ind:] = interp_close(frames[tent_label_ind:], tent_label, frame_counter-tent_label_ind)
+                
+                #update frames, including the current one
+                labels[tent_label_ind:frame_counter+1] = [tent_label]*(frame_counter-tent_label_ind+1)
+                
+                #interp mode is turned off
+                interp_mode = False
+                
+        
+        elif key in label_ords:
+            #don't do anything if interpolate mode is active
+            if interp_mode == True: 
+                continue
+            
             #get the label name
             label = label_key_dict[key]
             
@@ -167,6 +272,9 @@ def PlayAndLabelFrames(frames,label_dict = {'i':'INTERP','w':'walking','t':'turn
             frames_out[frame_counter] = frame
             #update the label array with current label
             labels[frame_counter] = label
+            
+
+        
         elif key == ord(','): # if `<` then go back
             frame_counter -= 1
             frame_counter = setFrameCounter(frame_counter,num_frames)
@@ -422,7 +530,7 @@ def loadTiffBatch(video_dir, start, size):
     batch = []
     
     for i in range(start, start + size):
-        filename = os.path.join(video_dir, 'frame_' + str(i) + '.tiff')
+        filename = os.path.join(video_dir, 'frame' + str(i) + '.tiff')
         img = cv2.imread(filename)
         border = cv2.copyMakeBorder(
             img,
@@ -431,7 +539,7 @@ def loadTiffBatch(video_dir, start, size):
             left=bordersize,
             right=bordersize,
             borderType=cv2.BORDER_CONSTANT,
-            value = [16777215, 16777215, 16777215]
+            value = [255, 255, 255]
         )
         batch.append(border)
     
@@ -470,13 +578,10 @@ def batchFrameLabel(video_file,labels_file,batch_size,n_overlap_frames=10,
             print('Loaded in {}'.format(video_file))
             print('{} frames already labeled'.format(start_frame))
             
-             
-    
+
     #load in video
     video = cv2.VideoCapture(video_file)
     n_frames = video.get(cv2.CAP_PROP_FRAME_COUNT)
-    
-    #video = load_tiff(data_dir)
     
     #print(n_frames)
     batch_starts = np.arange(start_frame,n_frames,batch_size-n_overlap_frames)
@@ -514,9 +619,9 @@ def batchFrameLabel(video_file,labels_file,batch_size,n_overlap_frames=10,
 
         for i in tqdm(range(n_frames_to_read)):
             ret, frame = video.read()
-            gray=cv2.cvtColor(frame,cv2.COLOR_BGR2GRAY)
+            #gray=cv2.cvtColor(frame,cv2.COLOR_BGR2GRAY)
             border = cv2.copyMakeBorder(
-                gray,
+                frame,
                 top=bordersize,
                 bottom=bordersize,
                 left=bordersize,
@@ -530,7 +635,7 @@ def batchFrameLabel(video_file,labels_file,batch_size,n_overlap_frames=10,
         # Label Frames
         label_list = PlayAndLabelFrames(frames,label_dict=label_dict,overlap_labels=overlap_labels,return_labeled_frames=False)
 
-        label_list = interpolate_labels(label_list) #interpolate
+        #label_list = interpolate_labels(label_list) #obsolete
                
         label_df = pd.DataFrame(data = {'label':label_list,'frame':np.arange(current_batch,current_batch + n_frames_to_read,1), 'labeler': [labeler_name]*batch_size})
 
@@ -678,7 +783,7 @@ def relabelFrames(video_file,labels_file,batch_size,n_overlap_frames=10,
         # Label Frames
         label_list = PlayAndLabelFrames(labeled_frames,label_dict=label_dict,return_labeled_frames=False,labels=batch_labels)
 
-        label_list = interpolate_labels(label_list) #interpolate
+        #label_list = interpolate_labels(label_list) #interpolate
 
         #Check for save 
         save_labels_input = input('Save labels? [y/n]: ')
@@ -796,7 +901,7 @@ def relabelTiff(video_dir,labels_file,batch_size,n_overlap_frames=10,
         # Label Frames
         label_list = PlayAndLabelFrames(labeled_frames,label_dict=label_dict,return_labeled_frames=False,labels=batch_labels)
 
-        label_list = interpolate_labels(label_list) #interpolate
+        #label_list = interpolate_labels(label_list) #interpolate
 
         #Check for save 
         save_labels_input = input('Save labels? [y/n]: ')
