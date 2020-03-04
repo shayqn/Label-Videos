@@ -7,6 +7,10 @@ import numpy as np
 import pandas as pd
 import os
 import random
+import math
+
+from itertools import groupby
+from operator import itemgetter
 
 #####################################################
 ####### Load Video Frames ##########################
@@ -695,7 +699,311 @@ def batchFrameLabel(video_file,labels_file,batch_size,n_overlap_frames=10,
                 current_ind += 1
 
 
+#####################################################
+########## Multisession batch labeling ##############
+#####################################################
 
+def multiLabelerBatchLabel(video_dir,labels_file,batch_size=500,n_overlap_frames=25,
+                    label_dict = {'i':'INTERP','s':'still','r':'rearing','w':'walking', 'q':'left turn', 'e':'right turn', 'a':'left turn [still]', 'd': 'right turn [still]', 'g':'grooming','m':'eating', 't':'explore', 'l':'leap'}):
+    
+    '''
+    This will check to see if a labels_file already exists. If so, you can choose to continue from 
+    where you left off, or choose to overwrite. 
+    '''
+    bordersize = 50
+    
+    labeler_name = input('Labeler name: ')
+    
+    #set start_frame to 0 and initiailize master_labels
+    start_frame = 0
+    master_labels = pd.DataFrame()
+    overlap_labels = []
+
+    #overwrite start_frame & master_labels if user wants to continue labeling from existing label file
+    if os.path.exists(labels_file):
+        master_labels = pd.read_csv(labels_file,index_col=0)
+        last_label = int(master_labels.frame.values[-1])
+        start_frame = last_label - n_overlap_frames + 1
+        if master_labels.iloc[-n_overlap_frames].label != 'claimed':
+            overlap_labels = master_labels["label"].tolist()[last_label - n_overlap_frames:last_label]
+        #print('Loaded in {}'.format(video_file))
+        print('{} frames already labeled'.format(start_frame))
+            
+
+    #load in video
+    n_frames = len([i for i in os.listdir(video_dir) if os.path.splitext(i)[1] == '.tiff'])
+    
+    #print(n_frames)
+    batch_starts = np.arange(start_frame,n_frames,batch_size-n_overlap_frames)
+    #print(batch_starts.shape)
+    
+    #print all keys    
+    print(""" 
+    Navigation
+    < : previous frame
+    > : next frame
+    Backspace : delete label
+    x : quit
+        """)
+
+    print('Labels')
+    for key in label_dict:
+        print(key + " : " + label_dict[key])
+            
+    
+    label_in_progress = True
+    current_ind = 0
+    claim_labeling = False
+    
+    while label_in_progress is True:
+        #find if there are any batches claimed by user but not labeled
+        claimed_df = pd.DataFrame()
+        
+        if os.path.exists(labels_file):
+            claimed_df = master_labels.loc[(master_labels.label=='claimed') & (master_labels.labeler == labeler_name)].copy()
+        
+        #if the user has claimed a batch (by opening one up and not saving it), they have to label that before moving on
+        if claimed_df.shape[0] != 0:
+            current_batch = claimed_df.frame[0]
+            claim_labeling = True
+        else:
+            current_batch = batch_starts[current_ind]
+            claim_labeling = False
+        
+        # Read in video batch
+        if current_batch == batch_starts[-1]:
+            n_frames_to_read = n_frames - current_batch
+        else:
+            n_frames_to_read = batch_size
+        
+        #if user is not working on a previously claimed batch, claim the batch 
+        if claimed_df.shape[0] == 0:
+            placeholder_df = pd.DataFrame(data = {'label':['claimed']*n_frames_to_read,'frame':np.arange(current_batch,current_batch + n_frames_to_read,1), 'labeler': [labeler_name]*n_frames_to_read})
+            if len(overlap_labels) is not 0: #overwrite old labels
+                master_labels = master_labels[:-n_overlap_frames]
+            master_labels = master_labels.append(placeholder_df)
+            master_labels.to_csv(labels_file, float_format='%g')
+
+        #load frames    
+        frames = loadTiffBatch(video_dir, current_batch, n_frames_to_read)
+
+        # Label Frames
+        label_list = PlayAndLabelFrames(frames,label_dict=label_dict,overlap_labels=overlap_labels,return_labeled_frames=False)
+
+        #label_list = interpolate_labels(label_list) #obsolete
+               
+        #label_df = pd.DataFrame(data = {'label':label_list,'frame':np.arange(current_batch,current_batch + n_frames_to_read,1), 'labeler': [labeler_name]*batch_size})
+
+        #Check for save
+        save_labels_input = input('Save labels? [y/n]: ')
+
+        if save_labels_input == 'y':
+            save_labels = True
+        elif save_labels_input == 'n':
+            save_labels = False
+        else:
+            print('Input not understood, defaulting to yes')
+            save_labels = True
+
+        #Save labels
+        if save_labels is True:
+            master_labels = pd.read_csv(labels_file,index_col=0)
+            master_labels.loc[(master_labels.label=='claimed') & (master_labels.labeler == labeler_name), ['label']] = label_list
+            master_labels.to_csv(labels_file, float_format='%g')
+
+            #print progress
+            n_labeled = master_labels.shape[0]
+            per_labeled = n_labeled*100 / n_frames
+            print('{} out of {} frames labeled ({:.02f} %)'.format(n_labeled,n_frames,per_labeled))
+
+        # quit if there's nothing more, continue otherwise
+        if current_batch == batch_starts[-1]:
+            break
+
+
+        #If user does not save, check if they want to relabel, quit or move on
+        if save_labels is False:            
+            cont_input = input('Continue to label? "n" for no, "r" for relabel current batch, or "c" for continue to next batch [n/r/c]: ')
+
+            if cont_input == 'n':
+                label_in_progress = False
+            elif cont_input == 'r':
+                pass
+            elif cont_input == 'c':
+                current_ind += 1
+                overlap_labels = label_list[batch_size-n_overlap_frames:]
+            else:
+                print('Input not understood. Opening same batch for relabeling.')
+
+        else: #otherwise, just ask if they want to label the next batch
+
+            label_next_input = input('Label next batch? [y/n]: ')
+
+            if label_next_input == 'y':
+                if claim_labeling == False: 
+                    current_ind += 1
+                overlap_labels = label_list[batch_size-n_overlap_frames:]
+            elif label_next_input == 'n':
+                label_in_progress = False
+            else:
+                print('Input not understood, defaulting to "yes"')
+                current_ind += 1
+
+
+def multiLabelerBatchLabelTest(video_dir,labels_file,batch_size=500,n_overlap_frames=25,
+                    label_dict = {'i':'INTERP','s':'still','r':'rearing','w':'walking', 'q':'left turn', 'e':'right turn', 'a':'left turn [still]', 'd': 'right turn [still]', 'g':'grooming','m':'eating', 't':'explore', 'l':'leap'}):
+    
+    '''
+    This will check to see if a labels_file already exists. If so, you can choose to continue from 
+    where you left off, or choose to overwrite. 
+    '''
+    bordersize = 50
+    min_gap = 200
+    
+    labeler_name = input('Labeler name: ')
+    
+    #set start_frame to 0 and initiailize master_labels
+    master_labels = pd.DataFrame()
+    frames_labeled = []
+    overlap_labels = []
+    
+    #load in video
+    n_frames = len([i for i in os.listdir(video_dir) if os.path.splitext(i)[1] == '.tiff'])
+
+    #overwrite start_frame & master_labels if user wants to continue labeling from existing label file
+    if os.path.exists(labels_file):
+        master_labels = pd.read_csv(labels_file,index_col=0)   
+        frames_labeled = master_labels.frame.values
+        frames_left = [i for i in range(n_frames) if i not in frames_labeled]
+        frames_left = np.arange(frames_left[0]-n_overlap_frames, frames_left[0]).tolist() + frames_left
+    else:
+        frames_left = [i for i in range(n_frames)]
+        
+    #generate list of contiguous frames 
+    gaps = [[s, e-n_overlap_frames] for s, e in zip(frames_left, frames_left[1:]) if s+1 < e]
+    edges = iter([frames_left[0]] + sum(gaps, []) + [frames_left[-1]])
+    frame_ranges = list(zip(edges, edges))
+    batch_starts = []
+    
+    #turn the list of contiguous frames into batch starts
+    for frange in frame_ranges:
+        n_subsections = math.ceil((frange[1] - frange[0])/(batch_size-n_overlap_frames))
+        
+        #if contiguous frames are long enough (ie 1000 frames with batch size 500), divide it up
+        if n_subsections > 1:
+            for i in range(n_subsections):
+                batch_starts.append(frange[0]+i*(batch_size-n_overlap_frames))
+            
+            #enforce minimum gap by adjusting last batch_start if needed
+            remainder = frange[1] - batch_starts[-1] + 1
+            print(remainder)
+            if remainder < min_gap:
+                batch_starts[-1] = batch_starts[-1] - (min_gap - remainder)
+                
+        #else, if the contiguous frames are short, just add that to batch_starts
+        else:
+            batch_starts.append(frange[0])
+    print(batch_starts)
+
+    if len(batch_starts) == 0:
+        print('No more unlabeled frames')
+        return
+
+    #print('Loaded in {}'.format(video_file))
+    print('{} frames already labeled'.format(len(frames_labeled)))
+            
+    
+    #print all keys    
+    print(""" 
+    Navigation
+    < : previous frame
+    > : next frame
+    Backspace : delete label
+    x : quit
+        """)
+
+    print('Labels')
+    for key in label_dict:
+        print(key + " : " + label_dict[key])
+            
+    
+    label_in_progress = True
+    
+    while label_in_progress is True:
+        
+        #choose random batch
+        current_batch = random.choice(batch_starts)
+        if os.path.exists(labels_file):
+            overlap_labels = master_labels.loc[(master_labels.frame >= current_batch) & 
+                                               (master_labels.frame < current_batch + n_overlap_frames)]
+
+        # Read in video batch
+        if current_batch == batch_starts[-1]:
+            n_frames_to_read = n_frames - current_batch
+        else:
+            n_frames_to_read = batch_size
+
+        #load frames    
+        frames = loadTiffBatch(video_dir, current_batch, n_frames_to_read)
+
+        # Label Frames
+        label_list = PlayAndLabelFrames(frames,label_dict=label_dict,overlap_labels=overlap_labels,return_labeled_frames=False)
+               
+        label_df = pd.DataFrame(data = {'label':label_list,'frame':np.arange(current_batch,current_batch + n_frames_to_read,1), 'labeler': [labeler_name]*batch_size})
+
+        #Check for save
+        save_labels_input = input('Save labels? [y/n]: ')
+
+        if save_labels_input == 'y':
+            save_labels = True
+        elif save_labels_input == 'n':
+            save_labels = False
+        else:
+            print('Input not understood, defaulting to yes')
+            save_labels = True
+
+        #Save labels
+        if save_labels is True:
+            master_labels = pd.read_csv(labels_file,index_col=0)
+            master_labels = master_labels.append(label_df)
+            master_labels.to_csv(labels_file, float_format='%g')
+
+            #print progress
+            n_labeled = master_labels.shape[0]
+            per_labeled = n_labeled*100 / n_frames
+            print('{} out of {} frames labeled ({:.02f} %)'.format(n_labeled,n_frames,per_labeled))
+            batch_starts.remove(current_batch)
+
+        # quit if there's nothing more, continue otherwise
+        if len(batch_starts) == 0:
+            break
+
+
+        #If user does not save, check if they want to relabel, quit or move on
+        if save_labels is False:            
+            cont_input = input('Continue to label? "n" for no, "r" for relabel current batch, or "c" for continue to next batch [n/r/c]: ')
+
+            if cont_input == 'n':
+                label_in_progress = False
+            elif cont_input == 'r':
+                pass
+            elif cont_input == 'c':
+                pass
+            else:
+                print('Input not understood. Opening same batch for relabeling.')
+
+        else: #otherwise, just ask if they want to label the next batch
+
+            label_next_input = input('Label next batch? [y/n]: ')
+
+            if label_next_input == 'y':
+                pass
+            elif label_next_input == 'n':
+                label_in_progress = False
+            else:
+                print('Input not understood, defaulting to "yes"')
+                pass               
+                
 #####################################################
 ########## Relabel Video (in batches) #### ###################
 #####################################################
