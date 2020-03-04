@@ -68,11 +68,12 @@ def PlayVideoFrames(frames):
 ####### Interpolation GUI functions #################
 #####################################################
 
-def interp_annotate(frames, tent_label):
+def interp_annotate(frames, tent_label, prev_labels):
     '''
     INPUTS:
     frames: all frames where interpolation mode is active
     tent_label <str>: tentative label
+    prev_labels <list of str>: previous labels that were in the interpolate zones
     
     OUTPUTS:
     updated frames where everything has grey tent_label and green borders
@@ -82,25 +83,26 @@ def interp_annotate(frames, tent_label):
     frame_width = frames[0].shape[1]
     annotated_frames = []
     
-    for frame in frames:
+    for ind, frame in enumerate(frames):
         cv2.rectangle(frame,(0,frame_height),(frame_width,frame_height-50),(0,255,0),-1)
         cv2.rectangle(frame,(0,50),(frame_width,0),(0,255,0),-1)
         cv2.rectangle(frame,(0,frame_height),(50,0),(0,255,0),-1)
         cv2.rectangle(frame,(frame_width-50,frame_height),(frame_width,0),(0,255,0),-1)
 
         cv2.putText(frame,tent_label,(0,frame_height-15),cv2.FONT_HERSHEY_COMPLEX,1,(160,160,160),2,cv2.LINE_AA)
+        if prev_labels[ind] != '0.0':
+            cv2.putText(frame,prev_labels[ind],(500,frame_height-15),cv2.FONT_HERSHEY_COMPLEX,1,(0,0,255),2,cv2.LINE_AA)
 
         annotated_frames.append(frame)
     
     return annotated_frames
 
 
-def interp_close(frames, tent_label, stop_ind):
+def interp_close(frames, updated_labels):
     '''
     INPUTS:
     frames: all frames with green borders and tentative labels that we want gone
-    tent_label <str>: label
-    stop_ind <int>: stop index, assuming first frame of input batch is 0
+    updated_labels <list of str>: previous labels that were in the interpolate zones
     
     OUTPUTS:
     frames where all frames have white borders and frames until stop_index have black tent_label
@@ -110,14 +112,14 @@ def interp_close(frames, tent_label, stop_ind):
     frame_width = frames[0].shape[1]
     annotated_frames = []
     
-    for current_ind, frame in enumerate(frames):
+    for ind, frame in enumerate(frames):
         cv2.rectangle(frame,(0,frame_height),(frame_width,frame_height-50),(255,255,255),-1)
         cv2.rectangle(frame,(0,50),(frame_width,0),(255,255,255),-1)
         cv2.rectangle(frame,(0,frame_height),(50,0),(255,255,255),-1)
         cv2.rectangle(frame,(frame_width-50,frame_height),(frame_width,0),(255,255,255),-1)
 
-        if current_ind <= stop_ind:
-            cv2.putText(frame,tent_label,(0,frame_height-15),cv2.FONT_HERSHEY_COMPLEX,1,(0,0,0),2,cv2.LINE_AA)
+        if updated_labels[ind] != '0.0':
+            cv2.putText(frame,updated_labels[ind],(0,frame_height-15),cv2.FONT_HERSHEY_COMPLEX,1,(0,0,0),2,cv2.LINE_AA)
 
         annotated_frames.append(frame)
     
@@ -217,12 +219,12 @@ def PlayAndLabelFrames(frames,label_dict = {'w':'walking','t':'turning','s':'sta
             #opening interpolate mode
             if interp_mode == False:
                 #find last label
-                nonzero_labels=[ind for ind, label in enumerate(labels) if label != '0.0']
+                nonzero_labels=[ind for ind, label in enumerate(labels[:frame_counter]) if label != '0.0']
                 tent_label_ind = nonzero_labels[len(nonzero_labels)-1]
                 tent_label = labels[tent_label_ind]
                 
                 #update GUI
-                frames_out[tent_label_ind:] = interp_annotate(frames[tent_label_ind:], tent_label)
+                frames_out[tent_label_ind:] = interp_annotate(frames[tent_label_ind:], tent_label, labels[tent_label_ind:])
                 
                 #interp mode is activated
                 interp_mode = True
@@ -240,14 +242,15 @@ def PlayAndLabelFrames(frames,label_dict = {'w':'walking','t':'turning','s':'sta
                 #find tentative label
                 tent_label = labels[tent_label_ind]
                 
-                #update GUI
-                frames_out[tent_label_ind:] = interp_close(frames[tent_label_ind:], tent_label, frame_counter-tent_label_ind)
-                
                 #update frames, including the current one
                 labels[tent_label_ind:frame_counter+1] = [tent_label]*(frame_counter-tent_label_ind+1)
                 
+                #update GUI
+                frames_out[tent_label_ind:] = interp_close(frames[tent_label_ind:], labels[tent_label_ind:])
+                
                 #interp mode is turned off
                 interp_mode = False
+                tent_label_ind = None
                 
         
         elif key in label_ords:
