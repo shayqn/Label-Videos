@@ -20,5 +20,18 @@ After activating the environment, you will need to enable the ipywidget jupyter 
 
 
 ### Other operating systems
-Haven't been tested yet. A list of required packages is provided in `environment-packages.yaml` - you can use this file to manually inspect & install the packages using conda/pip/etc. to try and get it working. 
+Module works on Windows, but the environment has to created manually. A list of required packages is provided in `environment-packages.yaml` - you can use this file to manually inspect & install the packages using conda/pip/etc.
 
+## General Functionality
+videolabeler is a module created for labeling mouse behavioral data. Current functionalities (with supported input formats in parenthesis) include:
+
+	* batchFrameLabel - for single user labeling single recording (AVI)
+	* multiLabelerBatchLabel - for multiple users labeling multiple recordings at once (TIFF)
+	* relabel - for relabeling of fully labeled videos (TIFF, AVI)
+	* windows_and_inspect - for random spot-checking of behavioral labels. Does not allow creation/adjustment of labels. (TIFF, AVI)
+
+### Output
+
+All labels are saved as .csv files, where each frame has an associated frame number, animal_id (if in multiLabeler mode) and label. 
+
+MultiLabeler mode saves multiple labels, with one column for each unique labeler. As such, it's recommended to have a consistent labeler ID for all of your labels.
