@@ -25,10 +25,10 @@ Module works on Windows, but the environment has to created manually. A list of 
 ## General Functionality
 videolabeler is a module created for labeling mouse behavioral data. Current functionalities (with supported input formats in parenthesis) include:
 
-	* batchFrameLabel - for single user labeling single recording (AVI)
-	* multiLabelerBatchLabel - for multiple users labeling multiple recordings at once (TIFF)
-	* relabel - for relabeling of fully labeled videos (TIFF, AVI)
-	* windows_and_inspect - for random spot-checking of behavioral labels. Does not allow creation/adjustment of labels. (TIFF, AVI)
+* __batchFrameLabel__ - for single user labeling single recording (AVI)
+* __multiLabelerBatchLabel__ - for multiple users labeling multiple recordings at once (TIFF)
+* __relabel__ - for relabeling of fully labeled videos (TIFF, AVI)
+* __windows_and_inspect__ - for random spot-checking of behavioral labels. Does not allow creation/adjustment of labels. (TIFF, AVI)
 
 ### Output
 
