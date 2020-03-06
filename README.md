@@ -44,7 +44,7 @@ All labels are saved as .csv files, where each frame has an associated frame num
 MultiLabeler mode saves multiple labels, with one column for each unique labeler. As such, it's recommended to have a consistent labeler ID for all of your labels.
 
 
-| Index     |   animal_id   | Frame |  labeler_A |  labeler B |
+|           |   animal_id   | Frame |  labeler_A |  labeler B |
 | ----------|:-------------:| -----:|:----------:|:----------:|
 | 0         | OM14          |   0   |walking     | explore    |
 | 1         | OM14          |   1   |walking     | walking    |
