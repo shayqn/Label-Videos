@@ -234,7 +234,6 @@ def PlayAndLabelFrames(frames,label_dict = {'w':'walking','t':'turning','s':'sta
                 '''
                 Current implementation of interpolate assumes strictly chronological labeling due to the way the last label is found. 
                 You can't interpolate backwards
-                Once you used interpolate, you can't use it for frames before where you last used interpolate
                 '''
                 if frame_counter < tent_label_ind:
                     continue

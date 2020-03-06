@@ -30,8 +30,21 @@ videolabeler is a module created for labeling mouse behavioral data. Current fun
 * __relabel__ - for relabeling of fully labeled videos (TIFF, AVI)
 * __windows_and_inspect__ - for random spot-checking of behavioral labels. Does not allow creation/adjustment of labels. (TIFF, AVI)
 
+
 ### Output
 
-All labels are saved as .csv files, where each frame has an associated frame number, animal_id (if in multiLabeler mode) and label. 
+All labels are saved as .csv files, where each frame has an associated frame number, animal_id (if in multiLabeler mode) and label.
+
+|           |   label       | frame |
+| ----------|:-------------:| -----:|
+| 0         | walking       |   0   |
+| 1         | walking       |   1   |
+
 
 MultiLabeler mode saves multiple labels, with one column for each unique labeler. As such, it's recommended to have a consistent labeler ID for all of your labels.
+
+
+| Index     |   animal_id   | Frame |  labeler_A |  labeler B |
+| ----------|:-------------:| -----:|:----------:|:----------:|
+| 0         | OM14          |   0   |walking     | explore    |
+| 1         | OM14          |   1   |walking     | walking    |
