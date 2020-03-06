@@ -869,9 +869,15 @@ def multiLabelerBatchLabel(root_dir,animal_ids,labels_file=None,batch_size=500,n
         #choose random batch start from that recording
         current_batch = random.choice(rec.batch_starts)
 
-        # Read in video batch
-        if rec.n_frames - current_batch < batch_size:
+        #if your batch is near the end of a video
+        if rec.n_frames - current_batch < batch_size:         
             n_frames_to_read = rec.n_frames - current_batch
+            
+        #if your batch start is right before a gap, i.e batch_start=600 when 700+ is labeled, use min_gap to reduce unintentional overlap   
+        elif current_batch + min_gap not in rec.unlab_frames: 
+            n_frames_to_read = min_gap
+            
+        #else, just load in batch_size    
         else:
             n_frames_to_read = batch_size
 
@@ -881,7 +887,7 @@ def multiLabelerBatchLabel(root_dir,animal_ids,labels_file=None,batch_size=500,n
         # Label Frames
         label_list = PlayAndLabelFrames(frames,label_dict=label_dict,return_labeled_frames=False)
                
-        label_df = pd.DataFrame(data = {labeler_name:label_list,'frame':np.arange(current_batch,current_batch + n_frames_to_read,1), 'animal_id':rec.animal_id})
+        label_df = pd.DataFrame(data = {'frame':np.arange(current_batch,current_batch + n_frames_to_read,1), 'animal_id':rec.animal_id, labeler_name:label_list})
 
         #Check for save
         save_labels_input = input('Save labels? [y/n]: ')
