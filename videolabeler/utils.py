@@ -768,10 +768,10 @@ def findBatchStarts(frames_left, batch_size, total_frames, n_overlap_frames, min
             for i in range(n_subsections):
                 batch_starts.append(frange[0]+i*(batch_size-n_overlap_frames))
             
-            #enforce minimum gap by adjusting last batch_start if needed
+            #enforce minimum gap by adjusting second to last batch_start if needed
             remainder = frange[1] - batch_starts[-1]
             if remainder < min_gap:
-                batch_starts[-1] = batch_starts[-1] - (min_gap - remainder - 1)
+                batch_starts[-2] = batch_starts[-2] - (min_gap - remainder - 1)
                 
         #else, if the contiguous frames are short, just add that to batch_starts
         else:
@@ -833,7 +833,7 @@ def multiLabelerBatchLabel(root_dir,animal_ids,labels_file=None,batch_size=500,n
     #calculate total frames for progress bar
     total_frames = sum([rec.n_frames for rec in animal_recs])
     
-    print('{} frames already labeled'.format(len(frames_labeled)))
+    #print('{} frames already labeled'.format(len(frames_labeled)))
             
     
     #print all keys    
@@ -914,8 +914,8 @@ def multiLabelerBatchLabel(root_dir,animal_ids,labels_file=None,batch_size=500,n
                     for rec_to_update in animal_recs:
                         if rec_to_update.animal_id == updated_animal_id:
                             remaining_frames = rec_to_update.unlab_frames - new_frames
-                            rec.set_unlab_frames(remaining_frames)
-                            rec.set_batch_starts(findBatchStarts(list(remaining_frames), 
+                            rec_to_update.set_unlab_frames(remaining_frames)
+                            rec_to_update.set_batch_starts(findBatchStarts(list(remaining_frames), 
                                                                  batch_size, rec.n_frames, n_overlap_frames, min_gap))
                 
             #add your labels to master file
