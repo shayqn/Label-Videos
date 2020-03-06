@@ -33,7 +33,7 @@ videolabeler is a module created for labeling mouse behavioral data. Current fun
 
 ### Output
 
-All labels are saved as .csv files, where each frame has an associated frame number, animal_id (if in multiLabeler mode) and label.
+All labels are saved as .csv files, where each frame has an associated frame number and label.
 
 |           |   label       | frame |
 | ----------|:-------------:| -----:|
