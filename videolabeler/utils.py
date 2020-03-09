@@ -90,7 +90,8 @@ def interp_annotate(frames, tent_label, prev_labels):
         cv2.rectangle(frame,(frame_width-50,frame_height),(frame_width,0),(0,255,0),-1)
 
         cv2.putText(frame,tent_label,(0,frame_height-15),cv2.FONT_HERSHEY_COMPLEX,1,(160,160,160),2,cv2.LINE_AA)
-        if prev_labels[ind] != '0.0':
+        
+        if prev_labels[ind] != '0.0' and ind != 0:
             cv2.putText(frame,prev_labels[ind],(500,frame_height-15),cv2.FONT_HERSHEY_COMPLEX,1,(0,0,255),2,cv2.LINE_AA)
 
         annotated_frames.append(frame)
@@ -850,23 +851,27 @@ def multiLabelerBatchLabel(root_dir,animal_ids,labels_file=None,batch_size=500,n
             
     
     label_in_progress = True
-    verification_mode = False
+    relabel_mode = False
     
     while label_in_progress is True:
         
-        # quit if there's nothing more, continue otherwise
-        if len(animal_recs) == 0:
-            print('No more unlabeled recordings')
-            break
+        #only pick rndom label if user is not relabeling
+        if relabel_mode == False:
+            
+            # quit if there's nothing more, continue otherwise
+            if len(animal_recs) == 0:
+                print('No more unlabeled recordings')
+                break
+
+            #choose random recording
+            rec = random.choice(animal_recs)
+            if len(rec.batch_starts) == 0:
+                animal_recs.remove(rec)
+                continue
+
+            #choose random batch start from that recording
+            current_batch = random.choice(rec.batch_starts)
         
-        #choose random recording
-        rec = random.choice(animal_recs)
-        if len(rec.batch_starts) == 0:
-            animal_recs.remove(rec)
-            continue
-        
-        #choose random batch start from that recording
-        current_batch = random.choice(rec.batch_starts)
 
         #if your batch is near the end of a video
         if rec.n_frames - current_batch < batch_size:         
@@ -947,22 +952,24 @@ def multiLabelerBatchLabel(root_dir,animal_ids,labels_file=None,batch_size=500,n
             if cont_input == 'n':
                 label_in_progress = False
             elif cont_input == 'r':
-                pass
+                relabel_mode = True
             elif cont_input == 'c':
-                pass
+                relabel_mode = False
             else:
                 print('Input not understood. Opening same batch for relabeling.')
+                relabel_mode = True
 
         else: #otherwise, just ask if they want to label the next batch
 
             label_next_input = input('Label next batch? [y/n]: ')
 
             if label_next_input == 'y':
-                pass
+                relabel_mode= False
             elif label_next_input == 'n':
                 label_in_progress = False
             else:
                 print('Input not understood, defaulting to "yes"')
+                relabel_mode= False
                 pass   
             
 #####################################################
