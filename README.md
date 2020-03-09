@@ -24,7 +24,7 @@ Module works on Windows, but the environment has to created manually. A list of 
 ## Setup on Firefly
 In order to run the module on a remote server such as Firefly, you need a remote access method with a GUI, such as VNC or X11-enabled SSH. 
 
-Once you're connected to Firefly, clone the repository and install the Linux environment as instructd above.
+Once you're connected to Firefly, clone the repository and install the Linux environment as instructed above.
 
 ### VNC
 Windows users can download [UltraVNC Viewer](https://www.uvnc.com/), an open-source desktop sharing program. Once it's installed, connect to `firefly.inscopix.com:15`. Contact Help Desk if you're not sure of your VNC and server passwords.
@@ -40,12 +40,12 @@ Uses who run into connection issues or other problems with VNC can use an SSH cl
 3. Enable X11 forwarding on your SSH client. For PuTTy, you can find the option under Connection --> SSH --> X11
 4. Connect to Firefly using SSH. The address is:
 `username@firefly.inscopix.com`
-5. Run the Jupyter notebook on remote server without a browser. Connecting to a specific port is optionally; this is only for illustration purposes
+5. Run the Jupyter notebook on remote server without a browser. Connecting to a specific port is optionally; this is only for illustration purposes:
 `jupyter lab --port=9000 --no-browser`
 6. Note the Jupyter token printed to the console. It should be something like:
 `http://localhost:9000/?token=59ee5c413c6e816198a78caff7db008bb0410f98ab9ced52`
 7. On your __local__ terminal, connect your local port to the remote one using: 
-`ssh -N -f -L 8888:localhost:9000 fergus@funkyserver`
+`ssh -N -f -L 8888:localhost:9000 username@firefly.inscopix.com`
 8. In your local browser, type in the token from step 6 with your local port number
 `http://localhost:8888/?token=59ee5c413c6e816198a78caff7db008bb0410f98ab9ced52`
 
