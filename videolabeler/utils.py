@@ -769,9 +769,9 @@ def findBatchStarts(frames_left, batch_size, total_frames, n_overlap_frames, min
                 batch_starts.append(frange[0]+i*(batch_size-n_overlap_frames))
             
             #enforce minimum gap by adjusting second to last batch_start if needed
-            remainder = frange[1] - batch_starts[-1]
-            if remainder < min_gap:
-                batch_starts[-2] = batch_starts[-2] - (min_gap - remainder - 1)
+            #remainder = frange[1] - batch_starts[-1]
+            #if remainder < min_gap:
+            #    batch_starts[-1] = batch_starts[-1] - (min_gap - remainder - 1)
                 
         #else, if the contiguous frames are short, just add that to batch_starts
         else:
@@ -934,15 +934,16 @@ def multiLabelerBatchLabel(root_dir,animal_ids,labels_file=None,batch_size=500,n
             
             #keep record of current df for later comparison
             old_labels = new_labels.copy()
-
-            #print progress
-            n_labeled = new_labels.shape[0]
-            per_labeled = n_labeled*100 / total_frames
-            print('{} out of {} frames labeled ({:.02f} %)'.format(n_labeled,total_frames,per_labeled))
             
             #update recording metadata
             rec.remove_start(current_batch)
             rec.remove_unlab_frames(set(label_df.frame))
+            
+            #print progress
+            unlab_total = sum([len(i.unlab_frames) for i in animal_recs])
+            #n_labeled = new_labels.shape[0]
+            per_unlabeled = unlab_total / total_frames
+            print('{} out of {} frames remaining ({:.02f} %)'.format(unlab_total,total_frames,per_unlabeled))
 
 
         #If user does not save, check if they want to relabel, quit or move on
