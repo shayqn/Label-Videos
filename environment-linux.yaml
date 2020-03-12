@@ -8,9 +8,9 @@ dependencies:
   - backcall=0.1.0=py36_0
   - bleach=3.1.0=py_0
   - bzip2=1.0.8=h516909a_1
-  - ca-certificates=2019.10.16=0
+  - ca-certificates=2020.1.1=0
   - cairo=1.16.0=hfb77d84_1002
-  - certifi=2019.9.11=py36_0
+  - certifi=2019.11.28=py36_0
   - dbus=1.13.6=he372182_0
   - decorator=4.4.1=py_0
   - defusedxml=0.6.0=py_0
@@ -82,7 +82,8 @@ dependencies:
   - numpy=1.17.3=py36h95a1406_0
   - opencv=4.1.2=0
   - openh264=1.8.0=hdbcaa40_1000
-  - openssl=1.1.1d=h7b6447c_3
+  - openssl=1.1.1d=h7b6447c_4
+  - pandas=1.0.1=py36h0573a6f_0
   - pandoc=2.7.3=0
   - pandocfilters=1.4.2=py_1
   - parso=0.5.1=py_0
@@ -100,12 +101,16 @@ dependencies:
   - pyrsistent=0.15.5=py36h516909a_0
   - python=3.6.7=h357f687_1006
   - python-dateutil=2.8.1=py_0
+  - pytz=2019.3=py_0
   - pyzmq=18.1.0=py36he6710b0_0
   - qt=5.12.5=hd8c4c69_1
   - readline=8.0=hf8c457e_0
+  - scikit-video=1.1.11=pyh24bf2e0_0
+  - scipy=1.4.1=py36h921218d_0
   - send2trash=1.5.0=py_0
   - setuptools=41.6.0=py36_1
   - six=1.13.0=py36_0
+  - sk-video=1.1.10=pyh24bf2e0_4
   - sqlite=3.30.1=hcee41ef_0
   - terminado=0.8.3=py36_0
   - testpath=0.4.4=py_0
@@ -134,5 +139,5 @@ dependencies:
   - zipp=0.6.0=py_0
   - zlib=1.2.11=h516909a_1006
   - zstd=1.4.4=h3b9ef0a_1
-prefix: /home/sneufeld/anaconda3/envs/videolabel
+prefix: /home/mmiller/Applications/anaconda3/envs/video-labeler-linux
 
