@@ -752,7 +752,9 @@ INPUT:
 '''
 
 def findBatchStarts(frames_left, batch_size, total_frames, n_overlap_frames, min_gap=200):
-    
+    #make sure list is sorted so that function can accurately identify gaps
+    frames_left.sort()
+
     #generate list of contiguous frames 
     gaps = [[s+n_overlap_frames, e-n_overlap_frames] for s, e in zip(frames_left, frames_left[1:]) if s+1 < e]
     edges = iter([frames_left[0]] + sum(gaps, []) + [frames_left[-1]])
