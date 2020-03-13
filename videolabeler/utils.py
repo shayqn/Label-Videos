@@ -12,6 +12,8 @@ import math
 from itertools import groupby
 from operator import itemgetter
 
+from datetime import datetime
+
 #####################################################
 ####### Load Video Frames ##########################
 #####################################################
@@ -752,6 +754,7 @@ INPUT:
 '''
 
 def findBatchStarts(frames_left, batch_size, total_frames, n_overlap_frames, min_gap=200):
+    
     #make sure list is sorted so that function can accurately identify gaps
     frames_left.sort()
 
@@ -892,8 +895,12 @@ def multiLabelerBatchLabel(root_dir,animal_ids,labels_file=None,batch_size=500,n
 
         # Label Frames
         label_list = PlayAndLabelFrames(frames,label_dict=label_dict,return_labeled_frames=False)
+        
+        #get timestamp
+        now = datetime.now()
                
-        label_df = pd.DataFrame(data = {'frame':np.arange(current_batch,current_batch + n_frames_to_read,1), 'animal_id':rec.animal_id, labeler_name:label_list})
+        #create dataframe    
+        label_df = pd.DataFrame(data = {'time': now, 'frame':np.arange(current_batch,current_batch + n_frames_to_read,1), 'animal_id':rec.animal_id, labeler_name:label_list})
 
         #Check for save
         save_labels_input = input('Save labels? [y/n]: ')
@@ -929,7 +936,8 @@ def multiLabelerBatchLabel(root_dir,animal_ids,labels_file=None,batch_size=500,n
                             rec_to_update.set_unlab_frames(remaining_frames)
                             rec_to_update.set_batch_starts(findBatchStarts(list(remaining_frames), 
                                                                  batch_size, rec.n_frames, n_overlap_frames, min_gap))
-                
+      
+            
             #add your labels to master file
             new_labels = new_labels.append(label_df, sort=True, ignore_index=True)
             new_labels.to_csv(labels_file, float_format='%g')
