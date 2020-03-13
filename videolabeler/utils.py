@@ -896,11 +896,10 @@ def multiLabelerBatchLabel(root_dir,animal_ids,labels_file=None,batch_size=500,n
         # Label Frames
         label_list = PlayAndLabelFrames(frames,label_dict=label_dict,return_labeled_frames=False)
         
-        #get timestamp
-        now = datetime.now()
+
                
         #create dataframe    
-        label_df = pd.DataFrame(data = {'time': now, 'frame':np.arange(current_batch,current_batch + n_frames_to_read,1), 'animal_id':rec.animal_id, labeler_name:label_list})
+        label_df = pd.DataFrame(data = {'frame':np.arange(current_batch,current_batch + n_frames_to_read,1), 'animal_id':rec.animal_id, labeler_name:label_list})
 
         #Check for save
         save_labels_input = input('Save labels? [y/n]: ')
@@ -939,6 +938,7 @@ def multiLabelerBatchLabel(root_dir,animal_ids,labels_file=None,batch_size=500,n
       
             
             #add your labels to master file
+            label_df['time'] = datetime.now()
             new_labels = new_labels.append(label_df, sort=True, ignore_index=True)
             new_labels.to_csv(labels_file, float_format='%g')
             
