@@ -1316,7 +1316,63 @@ def double_view(video_file,labels_file1,labels_file2,batch_size, label_dict = {'
         else:
             print('Input not understood, defaulting to "yes"')
             start_frame += batch_size
-            
+ 
+def double_view_tiff(video_dir,labels_file1,labels_file2,batch_size, label_dict = {'i':'INTERP','s':'still','r':'rearing','w':'walking', 'q':'left turn', 'e':'right turn', 'a':'left turn [still]', 'd': 'right turn [still]', 'g':'grooming','m':'eating', 't':'explore', 'l':'leap'}):
+    
+    '''
+    This will check to see if a labels_file already exists. If so, you can choose to continue from 
+    where you left off, or choose to overwrite. 
+    '''
+    bordersize = 50
+    
+    #get start frame from user
+    start_frame_input = input('What frame do you want to start relabeling? [enter an integer]: ')
+    start_frame = int(start_frame_input)
+
+    #read in labels
+    labels1 = pd.read_csv(labels_file1,index_col=0)
+    labels2 = pd.read_csv(labels_file2,index_col=0)
+    
+    #load in video
+    n_frames = len([i for i in os.listdir(video_dir) if os.path.splitext(i)[1] == '.tiff'])
+    
+    label_in_progress = True
+    
+    while label_in_progress is True:       
+        
+        video.set(cv2.CAP_PROP_POS_FRAMES,start_frame)
+
+        # Read in video batch
+        if start_frame + batch_size > n_frames:
+            n_frames_to_read = int(n_frames - start_frame)
+            end_labeling = True
+        else:
+            n_frames_to_read = batch_size
+            end_labeling = False
+        
+        frames = loadTiffBatch(video_dir, batch_start_frame, batch_size)
+
+        #annotate frames with previous labels
+        batch_labels1 = labels1[((labels1.frame >= start_frame) &
+                                (labels1.frame < start_frame + batch_size))].label.values
+
+        batch_labels2 = labels2[((labels2.frame >= start_frame) &
+                                (labels2.frame < start_frame + batch_size))].label.values
+        
+        labeled_frames = double_annotate(frames,batch_labels1, batch_labels2)
+        
+        # Label Frames
+        label_list = PlayAndLabelFrames(labeled_frames,label_dict=label_dict,return_labeled_frames=False,labels=batch_labels1)   
+
+        label_next_input = input('See next batch? [y/n]: ')
+
+        if label_next_input == 'y':
+            start_frame += batch_size
+        elif label_next_input == 'n':
+            label_in_progress = False
+        else:
+            print('Input not understood, defaulting to "yes"')
+            start_frame += batch_size
             
 #####################################################
 ########## Window and Inspect #### ###################
