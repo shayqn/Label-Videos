@@ -409,7 +409,7 @@ def annotate_frames(frames,labels):
     return frames_out
 
 
-def double_annotate(frames,labels1, labels2):
+def double_annotate(frames,labels1, labels2, labeler1=None, labeler2=None):
     
     frames_out = frames.copy()
     
@@ -437,6 +437,8 @@ def double_annotate(frames,labels1, labels2):
         label1 = labels1[i]
         label2 = labels2[i]
         
+        cv2.putText(frame,labeler1,(0,30),cv2.FONT_HERSHEY_COMPLEX,1,(0,0,0),2,cv2.LINE_AA)
+        cv2.putText(frame,labeler2,(frame_width-150,30),cv2.FONT_HERSHEY_COMPLEX,1,(0,0,0),2,cv2.LINE_AA)
         
         '''
         for 1024x1280
@@ -451,13 +453,13 @@ def double_annotate(frames,labels1, labels2):
         #label text
 
         if label1 != '0.0':
-            cv2.putText(frame,label,(0,985),cv2.FONT_HERSHEY_COMPLEX,1,(0, 0, 0),2,cv2.LINE_AA)
+            cv2.putText(frame,label1,(0,frame_height-30),cv2.FONT_HERSHEY_COMPLEX,1,(0,0,0),2,cv2.LINE_AA)
             
         if label2 != '0.0':
-            cv2.putText(frame,label2,(800,985),cv2.FONT_HERSHEY_COMPLEX,1,(0, 0, 0),2,cv2.LINE_AA)
+            cv2.putText(frame,label2,(frame_width-150,frame_height-30),cv2.FONT_HERSHEY_COMPLEX,1,(0,0,0),2,cv2.LINE_AA)
             
-            #overwrite the frame
-            frames_out[i] = frame
+        #overwrite the frame
+        frames_out[i] = frame
     
     return frames_out
 
@@ -553,7 +555,28 @@ def loadTiffBatch(video_dir, start, size):
         batch.append(border)
     
     return batch
+
+#
+def loadSelectFrames(video_dir, frames_to_load):
+    bordersize = 50
     
+    batch = []
+    
+    for i in frames_to_load:
+        filename = os.path.join(video_dir, 'frame' + str(i) + '.tiff')
+        img = cv2.imread(filename)
+        border = cv2.copyMakeBorder(
+            img,
+            top=bordersize,
+            bottom=bordersize,
+            left=bordersize,
+            right=bordersize,
+            borderType=cv2.BORDER_CONSTANT,
+            value = [255, 255, 255]
+        )
+        batch.append(border)
+    
+    return batch
     
 #####################################################
 ########## Batch Label Video #### ###################
@@ -760,7 +783,12 @@ def findBatchStarts(frames_left, batch_size, total_frames, n_overlap_frames, min
 
     #generate list of contiguous frames 
     gaps = [[s+n_overlap_frames, e-n_overlap_frames] for s, e in zip(frames_left, frames_left[1:]) if s+1 < e]
-    edges = iter([frames_left[0]] + sum(gaps, []) + [frames_left[-1]])
+    #if first unlabeled frame is not 0, move back to account for overlap
+    if frames_left[0] == 0:
+        edges = iter([frames_left[0]] + sum(gaps, []) + [frames_left[-1]])
+    else:
+        edges = iter([(frames_left[0]-n_overlap_frames)] + sum(gaps, []) + [frames_left[-1]])
+        
     frame_ranges = list(zip(edges, edges))
     batch_starts = []
     
@@ -781,12 +809,12 @@ def findBatchStarts(frames_left, batch_size, total_frames, n_overlap_frames, min
         #else, if the contiguous frames are short, just add that to batch_starts
         else:
             batch_starts.append(frange[0])
-            
+    
     #print(batch_starts)
     return batch_starts
 
 
-def multiLabelerBatchLabel(root_dir,animal_ids,labels_file=None,batch_size=500,n_overlap_frames=50, min_gap=200,
+def multiLabelerBatchLabel(root_dir,animal_ids,labels_file=None,batch_size=500,n_overlap_frames=50, min_gap=100,
                     label_dict = {'i':'INTERP','s':'still','r':'rearing','w':'walking', 'q':'left turn', 'e':'right turn', 'a':'left turn [still]', 'd': 'right turn [still]', 'g':'grooming','m':'eating', 't':'explore', 'l':'leap'}):
     
 
@@ -1316,7 +1344,47 @@ def double_view(video_file,labels_file1,labels_file2,batch_size, label_dict = {'
         else:
             print('Input not understood, defaulting to "yes"')
             start_frame += batch_size
-            
+ 
+def double_view_multilabeler(video_dir,labels_file, labeler1, labeler2, batch_size):
+    
+    '''
+    This will check to see if a labels_file already exists. If so, you can choose to continue from 
+    where you left off, or choose to overwrite. 
+    '''
+    bordersize = 50
+
+    #read in labels
+    all_labels = pd.read_csv(labels_file,index_col=0)
+    
+    #label_preprocessing
+    vc = all_labels.frame.value_counts(ascending=True)
+    duplicates = all_labels.loc[all_labels.frame.isin(vc[vc > 1].index)]
+    
+    def label_exists(x):
+        for i in x:
+            if pd.isna(i) == False:
+                return i
+        
+        return None
+
+    duplicates = duplicates.groupby('frame').aggregate(label_exists).reset_index()
+    duplicates.sort_values(by='frame')
+    
+    #load in video
+    n_frames = len([i for i in os.listdir(video_dir) if os.path.splitext(i)[1] == '.tiff'])
+    animal_id = os.path.basename(video_dir)
+
+    #annotate frames with previous labels
+    relevant_labels = duplicates.loc[(duplicates.animal_id == animal_id) & (duplicates[labeler1].notna()) & (duplicates[labeler2].notna())]
+    
+    frames = loadSelectFrames(video_dir, relevant_labels.frame.values)
+    print(relevant_labels.shape)
+    
+    labeled_frames = double_annotate(frames, relevant_labels[labeler1].values, relevant_labels[labeler2].values,labeler1, labeler2)
+
+    # Label Frames
+    label_list = PlayAndLabelFrames(labeled_frames,return_labeled_frames=False)   
+
             
 #####################################################
 ########## Window and Inspect #### ###################
