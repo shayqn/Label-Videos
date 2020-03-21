@@ -499,15 +499,15 @@ def annotate_with_consensus(frames, original_labels, consensus_labels):
         cv2.putText(frame,label,(0,1000),cv2.FONT_HERSHEY_COMPLEX,1,(255,255,255),2,cv2.LINE_AA)
         '''
         #annotate the frame with the label text
-        cv2.rectangle(frame,(0,900),(300,800),(0,0,0),-1) #solid black background
-        cv2.rectangle(frame,(0,100),(300,0),(0,0,0),-1) #solid black background
+        #cv2.rectangle(frame,(0,900),(300,800),(0,0,0),-1) #solid black background
+        #cv2.rectangle(frame,(0,100),(300,0),(0,0,0),-1) #solid black background
         #label text
 
         if label != '0.0':
-            cv2.putText(frame,label,(0,985),cv2.FONT_HERSHEY_COMPLEX,1,(0, 0, 0),2,cv2.LINE_AA)
+            cv2.putText(frame,label,(0,frame_height-30),cv2.FONT_HERSHEY_COMPLEX,1,(0,0,0),2,cv2.LINE_AA)
             
         if con_label != '0.0':
-            cv2.putText(frame,con_label,(0,85),cv2.FONT_HERSHEY_COMPLEX,1,(0, 0, 0),2,cv2.LINE_AA)    
+            cv2.putText(frame,con_label,(0,30),cv2.FONT_HERSHEY_COMPLEX,1,(0,0,0),2,cv2.LINE_AA)   
         
         #overwrite the frame
         frames_out[i] = frame
