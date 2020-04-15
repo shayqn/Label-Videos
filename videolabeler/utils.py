@@ -374,16 +374,15 @@ def annotate_frames(frames,labels):
     box_height = 75
     frame_width = frames[0].shape[0]
     frame_height = frames[0].shape[1]
-    print(frame_height)
 
     start_xy = (0,frame_height)
     end_xy = (box_width,frame_height-box_height)
 
 
-    assert num_frames == num_labels,'number of frames must equal number of labels'
-    
+    #assert num_frames == num_labels,'number of frames must equal number of labels'
+    num_to_label = min([num_frames, num_labels])
 
-    for i in range(num_frames):
+    for i in range(num_to_label):
         
         frame = frames_out[i].copy()
         label = labels[i]
@@ -401,7 +400,7 @@ def annotate_frames(frames,labels):
         #label text
 
         if label != '0.0':
-            cv2.putText(frame,label,(0,985),cv2.FONT_HERSHEY_COMPLEX,1,(0, 0, 0),2,cv2.LINE_AA)
+            cv2.putText(frame,label,(0,frame_height-15),cv2.FONT_HERSHEY_COMPLEX,1,(0, 0, 0),2,cv2.LINE_AA)
             
             #overwrite the frame
             frames_out[i] = frame
@@ -431,7 +430,7 @@ def double_annotate(frames,labels1, labels2, labeler1=None, labeler2=None):
     num_to_label = min([num_frames, num_labels1, num_labels2])
     
 
-    for i in range(num_frames):
+    for i in range(num_to_label):
         
         frame = frames_out[i].copy()
         label1 = labels1[i]
@@ -511,6 +510,58 @@ def annotate_with_consensus(frames, original_labels, consensus_labels):
         
         #overwrite the frame
         frames_out[i] = frame
+    
+    return frames_out
+
+
+#annotates using a confidence value of 0.0-1.0
+def annotate_with_gradient(frames,labels, confidence=[]):
+    
+    frames_out = frames.copy()
+    
+    num_frames = len(frames)
+    num_labels = len(labels)
+    
+    
+    #position the box at the lower left corner
+    box_width = 250
+    box_height = 75
+    frame_width = frames[0].shape[0]
+    frame_height = frames[0].shape[1]
+
+    start_xy = (0,frame_height)
+    end_xy = (box_width,frame_height-box_height)
+
+
+    #assert num_frames == num_labels,'number of frames must equal number of labels'
+    num_to_label = min([num_frames, num_labels])
+    
+    if len(confidence) == 0:
+        confidence = [1]*num_to_label
+
+    for i in range(num_to_label):
+        
+        frame = frames_out[i].copy()
+        label = labels[i]
+        color = (1 - confidence[i]) *255
+        
+        
+        '''
+        for 1024x1280
+        #annotate the frame with the label text
+        cv2.rectangle(frame,(0,1024),(250,950),(0,0,0),-1) #need a solid background so that...
+        #...the labels can be overwritten
+        cv2.putText(frame,label,(0,1000),cv2.FONT_HERSHEY_COMPLEX,1,(255,255,255),2,cv2.LINE_AA)
+        '''
+        #annotate the frame with the label text
+        #cv2.rectangle(frame,(0,frame_height),(300,frame_height-50),(0,0,0),-1) #solid black background
+        #label text
+
+        if label != '0.0':
+            cv2.putText(frame,label,(0,frame_height-15),cv2.FONT_HERSHEY_COMPLEX,1,(color, color, color),2,cv2.LINE_AA)
+            
+            #overwrite the frame
+            frames_out[i] = frame
     
     return frames_out
 
@@ -1479,4 +1530,43 @@ def window_and_inspect_tiff(video_dir, label_file, window_size=10, overlap_size=
     
     # Label Frames
     PlayAndLabelFrames(labeled_frames)    
+    
+#####################################################
+########## Video writing ############################
+#####################################################    
+
+
+def write_movie(vid_dir, labels_fn, out_fn = None, vid_start=0, vid_length=500, confidence = [], vid_fps = 20):
+
+    labels = pd.read_csv(labels_fn)
+    
+    if out_fn == None:
+        out_fn = os.path.join(vid_dir, 'annotated_vid.avi')
+        
+    if os.path.isfile(out_fn):
+        os.remove(out_fn)
+    
+    n_frames = len([i for i in os.listdir(vid_dir) if os.path.splitext(i)[1] == '.tiff'])
+    #print(vid.get(cv2.CAP_PROP_FRAME_COUNT))
+    
+    frames = vl.loadTiffBatch(vid_dir, vid_start, vid_length)
+
+    out_frames = annotate_with_gradient(frames, labels.label.values[vid_start:vid_start+vid_length], confidence)
+    
+    frame_width = out_frames[0].shape[1]
+    frame_height = out_frames[0].shape[0]
+    
+    vid_writer = cv2.VideoWriter(out_fn, cv2.VideoWriter_fourcc('M','J','P','G'), int(vid_fps), (frame_width,frame_height))
+    print('Writing movie: {}'.format(out_fn))
+
+    for i in range(len(out_frames)):
+        
+        vid_writer.write(out_frames[i])
+        
+    vid_writer.release()
+    return True
+
+
+
+
    
