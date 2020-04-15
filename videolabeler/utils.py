@@ -400,7 +400,7 @@ def annotate_frames(frames,labels):
         #label text
 
         if label != '0.0':
-            cv2.putText(frame,label,(0,frame_height-15),cv2.FONT_HERSHEY_COMPLEX,1,(0, 0, 0),2,cv2.LINE_AA)
+            cv2.putText(frame,label,(0,frame_height-30),cv2.FONT_HERSHEY_COMPLEX,1,(0, 0, 0),2,cv2.LINE_AA)
             
             #overwrite the frame
             frames_out[i] = frame
@@ -558,7 +558,7 @@ def annotate_with_gradient(frames,labels, confidence=[]):
         #label text
 
         if label != '0.0':
-            cv2.putText(frame,label,(0,frame_height-15),cv2.FONT_HERSHEY_COMPLEX,1,(color, color, color),2,cv2.LINE_AA)
+            cv2.putText(frame,label,(0,frame_height-30),cv2.FONT_HERSHEY_COMPLEX,1,(color, color, color),2,cv2.LINE_AA)
             
             #overwrite the frame
             frames_out[i] = frame
@@ -1549,7 +1549,7 @@ def write_movie(vid_dir, labels_fn, out_fn = None, vid_start=0, vid_length=500, 
     n_frames = len([i for i in os.listdir(vid_dir) if os.path.splitext(i)[1] == '.tiff'])
     #print(vid.get(cv2.CAP_PROP_FRAME_COUNT))
     
-    frames = vl.loadTiffBatch(vid_dir, vid_start, vid_length)
+    frames = loadTiffBatch(vid_dir, vid_start, vid_length)
 
     out_frames = annotate_with_gradient(frames, labels.label.values[vid_start:vid_start+vid_length], confidence)
     
