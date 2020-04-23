@@ -1567,6 +1567,21 @@ def write_movie(vid_dir, labels_fn, out_fn = None, vid_start=0, vid_length=500, 
     return True
 
 
+def avi_to_tiff(vid_file, save_dir):
+    video = cv2.VideoCapture(vid_file)
+    frames = []
+    n_frames = int(video.get(cv2.CAP_PROP_FRAME_COUNT))
+
+    print('Reading {}'.format(os.path.basename(vid_file)))
+    for i in tqdm(range(n_frames)):
+        ret, frame = video.read()
+        gray=cv2.cvtColor(frame,cv2.COLOR_BGR2GRAY)
+        frames.append(gray)
+        key = cv2.waitKey(1)
+
+    print('Writing tiff files for {}'.format(os.path.basename(vid_file)))
+    for frame in frames:
+        cv2.imwrite(save_dir + "frame"+str(count)+".tiff", frame)
 
 
    
