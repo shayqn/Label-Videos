@@ -13,7 +13,6 @@ from itertools import groupby
 from operator import itemgetter
 
 from datetime import datetime
-from natsort import natsorted
 
 #####################################################
 ####### Load Video Frames ##########################
@@ -629,6 +628,30 @@ def loadSelectFrames(video_dir, frames_to_load):
         batch.append(border)
     
     return batch
+
+
+def find_tiff_frame_range(path, basename = 'frame'):
+
+    '''
+    INPUTS:
+    path <str> :
+    
+    OUTPUTS:
+    (lowframe, highframe) <tuple>
+    '''
+
+    if os.path.isdir(path):
+        file_list = os.listdir(path)
+        lowframe = np.inf
+        highframe = 0
+        outlist = []
+        for i in file_list:
+            f_name, f_ext = os.path.splitext(i)
+            outlist.append(int(f_name[len(basename):]))
+        return min(outlist), max(outlist)
+    else:
+        print('{} is not valid path'.format(path))
+        return ()
     
 #####################################################
 ########## Batch Label Video #### ###################
@@ -802,9 +825,7 @@ class Recording:
         self.batch_starts = []
         self.unlab_frames = []
         
-        all_frames = natsorted(os.listdir(video_dir))
-        self.last_frame = int(all_frames[-1].split('.')[0][5:])
-        self.first_frame = int(all_frames[0].split('.')[0][5:])
+        self.first_frame, self.last_frame = find_tiff_frame_range(video_dir)
     
     def set_batch_starts(self, batch_starts):
         self.batch_starts = batch_starts
@@ -902,9 +923,9 @@ def multiLabelerBatchLabel(root_dir,animal_ids,labels_file=None,batch_size=500,n
         if os.path.exists(labels_file):
             old_labels = pd.read_csv(labels_file,index_col=0)   
             frames_labeled = set(old_labels.loc[old_labels.animal_id==rec.animal_id].frame.values)
-            frames_left = set(np.arange(rec.first_frame, rec.last_frame)) - frames_labeled
+            frames_left = set(np.arange(rec.first_frame, rec.last_frame+1)) - frames_labeled
         else:
-            frames_left = set(np.arange(rec.first_frame, rec.last_frame))
+            frames_left = set(np.arange(rec.first_frame, rec.last_frame+1))
 
         rec.set_unlab_frames(frames_left)
         
@@ -964,7 +985,7 @@ def multiLabelerBatchLabel(root_dir,animal_ids,labels_file=None,batch_size=500,n
 
         #if your batch is near the end of a video
         if rec.last_frame - current_batch < batch_size:         
-            n_frames_to_read = rec.last_frame - current_batch
+            n_frames_to_read = rec.last_frame - current_batch + 1
             
         #if your batch start is right before a gap, i.e batch_start=600 when 700+ is labeled, use min_gap to reduce unintentional overlap   
         elif current_batch + min_gap not in rec.unlab_frames: 
